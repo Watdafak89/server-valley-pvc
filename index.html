@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server Valley — เกมรายวิชาระบบปฏิบัติการเครื่องแม่ข่ายเบื้องต้น (ปวช.)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;500;600;700&family=Silkscreen:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Main Game Viewport -->
+  <div id="game-shell">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Title / Character & School Setup Screen -->
+    <div id="title-screen" class="overlay-screen">
+      <div class="title-card wood-panel">
+        <div class="title-badge">หลักสูตร ปวช. 18 สัปดาห์ • แผนที่กว้าง 4 เท่า (4 โซน • Linux &amp; Windows Server)</div>
+        <h1 class="pixel-title">SERVER VALLEY</h1>
+        <p class="title-subtitle">หมู่บ้านเครื่องแม่ข่าย — ผจญภัยเรียนรู้ครบทั้ง 18 สัปดาห์ ตลอดภาคเรียน</p>
+
+        <!-- Student & Institution Setup Panel -->
+        <div class="setup-panel">
+          <div class="setup-avatar-col">
+            <div class="setup-avatar-frame">
+              <canvas id="setup-avatar-preview" width="84" height="84"></canvas>
+            </div>
+            <div class="color-picker-row">
+              <span>เสื้อ:</span>
+              <button class="swatch active" data-part="shirt" data-color="#2a7b5f" style="background:#2a7b5f" title="เขียวแอดมิน"></button>
+              <button class="swatch" data-part="shirt" data-color="#2b6cb0" style="background:#2b6cb0" title="น้ำเงิน Windows"></button>
+              <button class="swatch" data-part="shirt" data-color="#b83280" style="background:#b83280" title="ชมพู"></button>
+              <button class="swatch" data-part="shirt" data-color="#c05621" style="background:#c05621" title="ส้ม Ubuntu"></button>
+            </div>
+            <div class="color-picker-row">
+              <span>หมวก:</span>
+              <button class="swatch active" data-part="hat" data-color="#c85a17" style="background:#c85a17" title="ส้มอิฐ"></button>
+              <button class="swatch" data-part="hat" data-color="#1e40af" style="background:#1e40af" title="น้ำเงินเข้ม"></button>
+              <button class="swatch" data-part="hat" data-color="#6b46c1" style="background:#6b46c1" title="ม่วง"></button>
+              <button class="swatch" data-part="hat" data-color="#2d3748" style="background:#2d3748" title="ดำเท่"></button>
+            </div>
+          </div>
+
+          <div class="setup-fields-col">
+            <div class="setup-grid">
+              <div class="setup-field">
+                <label for="input-student-name">🧑‍🎓 ชื่อ-นามสกุลนักเรียน (แสดงในเกม &amp; เกียรติบัตร)</label>
+                <input id="input-student-name" type="text" class="pixel-input" placeholder="เช่น นายสมชาย ใจดี" maxlength="50" />
+              </div>
+              <div class="setup-field">
+                <label for="input-student-class">🏷️ ระดับชั้น / ห้อง / รหัส</label>
+                <input id="input-student-class" type="text" class="pixel-input" placeholder="เช่น ปวช.2/1 เลขที่ 15" maxlength="40" />
+              </div>
+              <div class="setup-field">
+                <label for="input-college-name">🏫 ชื่อวิทยาลัย / สถานศึกษา</label>
+                <input id="input-college-name" type="text" class="pixel-input" placeholder="เช่น วิทยาลัยเทคนิค..." maxlength="70" />
+              </div>
+              <div class="setup-field">
+                <label for="input-instructor-name">👨‍🏫 ชื่อครูผู้สอน (ลงนามบนเกียรติบัตร)</label>
+                <input id="input-instructor-name" type="text" class="pixel-input" placeholder="เช่น อาจารย์ผู้สอนรายวิชาฯ" maxlength="60" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="title-actions">
+          <button id="btn-new-game" class="wood-btn primary-btn">▶ เริ่มผจญภัยใหม่</button>
+          <button id="btn-continue-game" class="wood-btn hidden">💾 เล่นต่อจากเซฟเดิม</button>
+          <button id="btn-title-codex" class="wood-btn">📚 คลังเนื้อหา 18 สัปดาห์</button>
+        </div>
+
+        <div class="title-controls-hint">
+          <span><strong>WASD / ลูกศร</strong> เดิน</span>
+          <span><strong>Shift</strong> วิ่งเร็ว</span>
+          <span><strong>E / Space</strong> โต้ตอบ</span>
+          <span><strong>1–9, 0, -, =</strong> ไอเท็ม</span>
+          <span><strong>F</strong> ใช้ไอเท็ม</span>
+          <span><strong>B</strong> คลังเนื้อหา</span>
+          <span><strong>Q</strong> เควส</span>
+          <span><strong>M</strong> แผนที่ &amp; วาร์ป</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top-Left HUD: Player & Active Quest Tracker -->
+    <div id="hud-top-left" class="hud-layer hidden">
+      <div class="wood-panel mini-profile">
+        <canvas id="hud-avatar" width="48" height="48"></canvas>
+        <div class="profile-meta">
+          <div id="hud-player-name" class="profile-name">นักศึกษาฝึกงาน ปวช.</div>
+          <div class="profile-rank" id="hud-rank">Lv.1 ผู้ช่วยแอดมินมือใหม่</div>
+          <div class="uptime-bar-wrap" title="ความคืบหน้าการฟื้นฟูหมู่บ้าน">
+            <div class="uptime-label">
+              <span>Server Valley Online</span>
+              <span id="hud-uptime-pct">0%</span>
+            </div>
+            <div class="bar-track">
+              <div id="hud-uptime-fill" class="bar-fill uptime-fill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="quest-tracker" class="wood-panel quest-tracker-box">
+        <div class="tracker-header">
+          <span>📌 เควสปัจจุบัน</span>
+          <button id="btn-open-quests" class="mini-icon-btn" title="ดูรายการเควสทั้งหมด (Q)">Q</button>
+        </div>
+        <div id="tracker-title" class="tracker-title">หน่วยที่ 1: ปลุกเครือข่ายหมู่บ้าน</div>
+        <div id="tracker-objective" class="tracker-objective">ไปคุยกับผู้ใหญ่บ้านลุงแอดมินที่ลานกลางหมู่บ้าน</div>
+        <div id="tracker-direction" class="tracker-direction">🧭 ทิศทาง: ด้านหน้าบ้านพัก</div>
+      </div>
+    </div>
+
+    <!-- Top-Right HUD: Stardew-style Clock, Day, Bytes & Quick Menu -->
+    <div id="hud-top-right" class="hud-layer hidden">
+      <div class="wood-panel clock-panel">
+        <div class="clock-row">
+          <span id="hud-day" class="clock-day">วันที่ 1 • ฤดูใบไม้ผลิ</span>
+          <span id="hud-weather" title="สภาพอากาศ">☀️</span>
+        </div>
+        <div class="clock-time-row">
+          <span id="hud-time" class="clock-time">08:00 น.</span>
+          <span id="hud-zone" class="zone-chip">ลานบ้านพัก</span>
+        </div>
+        <div class="bytes-row">
+          <span class="bytes-icon">🪙</span>
+          <span id="hud-bytes" class="bytes-value">150</span>
+          <span class="bytes-unit">Bytes</span>
+        </div>
+      </div>
+
+      <div class="quick-menu-bar">
+        <button id="btn-multiplayer" class="hud-action-btn" title="เล่นกับเพื่อน / อันดับ / หน้าจอครู (L)">👥<span id="mp-btn-label">เพื่อน/ครู</span></button>
+        <button id="btn-codex" class="hud-action-btn" title="คลังเนื้อหา ปวช. (B)">📚<span>คลังเนื้อหา</span></button>
+        <button id="btn-quests" class="hud-action-btn" title="สมุดเควส (Q)">📜<span>เควส</span></button>
+        <button id="btn-map" class="hud-action-btn" title="แผนที่หมู่บ้าน (M)">🗺️<span>แผนที่</span></button>
+        <button id="btn-shop" class="hud-action-btn" title="ร้านค้าไอที (P)">🏪<span>ร้านค้า</span></button>
+        <button id="btn-cert-quick" class="hud-action-btn" title="เกียรติบัตร &amp; พิมพ์ PDF">🎓<span>เกียรติบัตร</span></button>
+        <button id="btn-audio" class="hud-action-btn" title="เปิด/ปิดเสียง">🔊<span>เสียง</span></button>
+        <button id="btn-help" class="hud-action-btn" title="วิธีเล่น &amp; มินิเกม Windows">❓<span>เมนู</span></button>
+      </div>
+    </div>
+
+    <!-- Bottom-Left Live In-Game Chat Box (Visible when connected to Friends/LAN) -->
+    <div id="hud-chat" class="hud-layer hidden">
+      <div class="chat-panel wood-panel">
+        <div class="chat-header">
+          <span id="chat-room-badge">💬 แชทในห้อง</span>
+          <button id="btn-chat-collapse" class="mini-icon-btn" title="ย่อ/ขยายแชท">−</button>
+        </div>
+        <div id="chat-body-wrap">
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-emotes">
+            <button class="emote-pill" data-emote="👋 สวัสดี!">👋</button>
+            <button class="emote-pill" data-emote="🎉 ผ่านแล้ว!">🎉</button>
+            <button class="emote-pill" data-emote="🆘 ช่วยด้วย!">🆘</button>
+            <button class="emote-pill" data-emote="👍 เก่งมาก!">👍</button>
+            <button class="emote-pill" data-emote="☕ พักดื่มกาแฟ">☕</button>
+          </div>
+          <div class="chat-input-row">
+            <input id="chat-input" type="text" class="pixel-input" placeholder="พิมพ์ข้อความ... (Enter ส่ง)" maxlength="120" />
+            <button id="btn-chat-send" class="wood-btn small-btn primary-btn">ส่ง</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right-Bottom Energy Bar (Stardew Style) -->
+    <div id="hud-energy" class="hud-layer hidden">
+      <div class="energy-shell wood-panel" title="พลังงาน (Energy) — ดื่มกาแฟแอดมินหรือพักที่เตียงเพื่อฟื้นฟู">
+        <div class="energy-icon">⚡</div>
+        <div class="energy-track">
+          <div id="energy-fill" class="energy-fill" style="height: 100%"></div>
+        </div>
+        <div id="energy-text" class="energy-text">100</div>
+      </div>
+    </div>
+
+    <!-- Bottom Center Hotbar (Stardew Valley Style) -->
+    <div id="hud-hotbar" class="hud-layer hidden">
+      <div id="selected-item-banner" class="selected-item-banner">เลือกไอเท็มด้วยปุ่ม 1-9 • กด F เพื่อใช้</div>
+      <div class="hotbar-frame wood-panel" id="hotbar-slots"></div>
+    </div>
+
+    <!-- Floating Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <!-- Mobile / Touch D-Pad (Optional toggleable) -->
+    <div id="touch-controls" class="hidden">
+      <div class="dpad">
+        <button class="dpad-btn up" data-dir="up">▲</button>
+        <div class="dpad-mid">
+          <button class="dpad-btn left" data-dir="left">◀</button>
+          <button class="dpad-btn center" data-action="interact">E</button>
+          <button class="dpad-btn right" data-dir="right">▶</button>
+        </div>
+        <button class="dpad-btn down" data-dir="down">▼</button>
+      </div>
+      <button class="touch-use-btn" data-action="use">ใช้ไอเท็ม (F)</button>
+    </div>
+
+    <!-- Stardew-style Dialog Box -->
+    <div id="dialog-overlay" class="dialog-overlay hidden">
+      <div class="dialog-box wood-panel">
+        <div class="dialog-portrait-col">
+          <div class="portrait-frame">
+            <canvas id="dialog-portrait" width="96" height="96"></canvas>
+          </div>
+          <div id="dialog-speaker" class="speaker-name">ลุงแอดมิน</div>
+          <div id="dialog-role" class="speaker-role">ผู้ใหญ่บ้าน</div>
+        </div>
+        <div class="dialog-content-col">
+          <div id="dialog-text" class="dialog-text"></div>
+          <div id="dialog-choices" class="dialog-choices"></div>
+          <div class="dialog-footer">
+            <span id="dialog-hint">กด Space / E หรือคลิกปุ่มด้านล่าง</span>
+            <button id="btn-dialog-next" class="wood-btn primary-btn">ต่อไป ▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Universal Modal Backdrop -->
+    <div id="modal-backdrop" class="modal-backdrop hidden">
+      <!-- Knowledge Library / Server Codex Modal -->
+      <div id="modal-codex" class="modal-window wood-panel large-modal hidden">
+        <div class="modal-header">
+          <div>
+            <h2>📚 คลังเนื้อหา: ระบบปฏิบัติการเครื่องแม่ข่ายเบื้องต้น (ปวช. 18 สัปดาห์)</h2>
+            <p class="modal-sub">สรุปครบทั้ง 18 สัปดาห์ (Linux Server, Windows Server, RAID, Cron, Proxy/Mail, Backup &amp; Log) พร้อมแบบฝึกหัด</p>
+          </div>
+          <button class="close-btn" data-close="modal-codex">✕</button>
+        </div>
+        <div class="codex-layout">
+          <aside class="codex-sidebar">
+            <input id="codex-search" type="text" class="pixel-input" placeholder="🔍 ค้นหา เช่น DHCP, chmod, Active Directory, IIS..." />
+            <div id="codex-unit-list" class="codex-unit-list"></div>
+          </aside>
+          <main id="codex-reader" class="codex-reader"></main>
+        </div>
+      </div>
+
+      <!-- Quest Journal Modal -->
+      <div id="modal-quests" class="modal-window wood-panel medium-modal hidden">
+        <div class="modal-header">
+          <div>
+            <h2>📜 สมุดบันทึกเควส 18 สัปดาห์ (Server Valley Journal)</h2>
+            <p class="modal-sub">ครบทั้งภาคเรียน 18 สัปดาห์ • กดปุ่ม 📍 วาร์ป เพื่อเดินทางไปยังอาคารของสัปดาห์ที่ต้องการได้ทันที</p>
+          </div>
+          <button class="close-btn" data-close="modal-quests">✕</button>
+        </div>
+        <div class="modal-body-scroll">
+          <div id="quest-list-container" class="quest-list-grid"></div>
+        </div>
+      </div>
+
+      <!-- Interactive Server Lab / Mini-Game Modal -->
+      <div id="modal-lab" class="modal-window wood-panel large-modal hidden">
+        <div class="modal-header">
+          <div>
+            <h2 id="lab-title">🖥️ ห้องปฏิบัติการจำลอง</h2>
+            <p id="lab-subtitle" class="modal-sub">ปฏิบัติภารกิจตามคำแนะนำด้านล่าง</p>
+          </div>
+          <div class="lab-header-actions">
+            <button id="btn-lab-codex-hint" class="wood-btn small-btn">📖 เปิดคู่มือหน่วยนี้</button>
+            <button class="close-btn" data-close="modal-lab">✕</button>
+          </div>
+        </div>
+        <div id="lab-body" class="modal-body-scroll lab-body"></div>
+      </div>
+
+      <!-- IT General Store Modal -->
+      <div id="modal-shop" class="modal-window wood-panel medium-modal hidden">
+        <div class="modal-header">
+          <div>
+            <h2>🏪 ร้านค้าอุปกรณ์ไอที (IT General Store)</h2>
+            <p class="modal-sub">ใช้เหรียญ Bytes 🪙 ซื้อไอเท็มฟื้นฟูพลังงานและเครื่องมือดูแลเครื่องแม่ข่าย</p>
+          </div>
+          <button class="close-btn" data-close="modal-shop">✕</button>
+        </div>
+        <div class="shop-balance-bar">
+          ยอดคงเหลือของคุณ: <strong id="shop-bytes-display">150 Bytes 🪙</strong>
+        </div>
+        <div id="shop-items-grid" class="shop-grid modal-body-scroll"></div>
+      </div>
+
+      <!-- Village Map Modal -->
+      <div id="modal-map" class="modal-window wood-panel medium-modal hidden">
+        <div class="modal-header">
+          <div>
+            <h2>🗺️ แผนที่หมู่บ้าน Server Valley (ขนาดใหญ่ 4 เท่า • 4 โซน)</h2>
+            <p class="modal-sub">คลิกที่อาคารใดก็ได้บนแผนที่ หรือกดปุ่มโซนด้านล่าง เพื่อวาร์ปไปยังอาคารของสัปดาห์ที่ต้องการทันที!</p>
+          </div>
+          <button class="close-btn" data-close="modal-map">✕</button>
+        </div>
+        <div class="map-modal-body">
+          <canvas id="world-map-canvas" width="672" height="448"></canvas>
+          <div id="map-legend" class="map-legend"></div>
+        </div>
+      </div>
+
+      <!-- Help, Settings & Windows Server Quick Launcher Modal -->
+      <div id="modal-help" class="modal-window wood-panel medium-modal hidden">
+        <div class="modal-header">
+          <div>
+            <h2>❓ เมนูช่วยเล่น • มินิเกม Windows Server • ตั้งค่าข้อมูล</h2>
+          </div>
+          <button class="close-btn" data-close="modal-help">✕</button>
+        </div>
+        <div class="modal-body-scroll help-body">
+          <div class="help-section">
+            <h3>🎮 การควบคุม</h3>
+            <ul>
+              <li><strong>W A S D</strong> หรือ <strong>ปุ่มลูกศร</strong> — เดินบังคับตัวละคร | กด <strong>Shift</strong> ค้างเพื่อวิ่งเร็ว</li>
+              <li><strong>E</strong> หรือ <strong>Spacebar</strong> — คุยกับ NPC / ใช้งานตู้เซิร์ฟเวอร์ / เก็บกล่องไอเท็ม / พักผ่อนที่เตียง</li>
+              <li><strong>1–9, 0, -, =</strong> (หรือคลิกช่อง Hotbar 12 ช่อง) — เลือกไอเท็ม | <strong>F</strong> — ใช้ไอเท็มที่ถืออยู่</li>
+              <li><strong>B</strong> — คลังเนื้อหา 18 สัปดาห์ | <strong>Q</strong> — เควส 18 สัปดาห์ | <strong>M</strong> — แผนที่ &amp; วาร์ปด่วน | <strong>P</strong> — ร้านค้า</li>
+            </ul>
+          </div>
+          <div class="help-section">
+            <h3>🪟 กิจกรรมพิเศษ &amp; ทบทวนสอบ ปวช.</h3>
+            <div class="help-actions">
+              <button id="btn-win-minigame" class="wood-btn win-btn">🪟 เปิดมินิเกม Windows Server (สัปดาห์ที่ 14: AD DS / IIS / PowerShell)</button>
+              <button id="btn-master-quiz" class="wood-btn primary-btn">🏆 ทดสอบประมวลความรู้รวม (Master Quiz 18 ข้อ)</button>
+              <button id="btn-view-cert" class="wood-btn">🎓 เกียรติบัตร &amp; พิมพ์ PDF</button>
+              <button id="btn-toggle-touch" class="wood-btn">📱 เปิด/ปิดปุ่มควบคุมบนหน้าจอ</button>
+              <button id="btn-reset-save" class="wood-btn danger-btn">🗑️ ล้างเซฟและเริ่มใหม่</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multiplayer, Leaderboard & Teacher Dashboard Modal -->
+      <div id="modal-multiplayer" class="modal-window wood-panel large-modal hidden">
+        <div class="modal-header">
+          <div>
+            <h2>👥 ศูนย์เล่นกับเพื่อน • ตารางอันดับ • หน้าจอครูผู้สอน</h2>
+            <p id="mp-status-bar" class="modal-sub">สถานะ: ออฟไลน์ (เล่นคนเดียว) — รองรับทั้งรหัสห้องออนไลน์ &amp; LAN ห้องแล็บ</p>
+          </div>
+          <button class="close-btn" data-close="modal-multiplayer">✕</button>
+        </div>
+        <div class="mp-tabs">
+          <button class="mp-tab-btn active" data-mptab="connect">🌐 เชื่อมต่อห้อง (ออนไลน์ / LAN)</button>
+          <button class="mp-tab-btn" data-mptab="leaderboard">🏆 ตารางจัดอันดับ (Leaderboard)</button>
+          <button class="mp-tab-btn" data-mptab="teacher">👩‍🏫 หน้าจอครูผู้สอน (Teacher Dashboard)</button>
+        </div>
+        <div class="modal-body-scroll">
+          <!-- Tab 1: Connect -->
+          <div id="mp-pane-connect" class="mp-pane">
+            <div class="mp-coop-banner">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+                <input id="mp-coop-toggle" type="checkbox" checked />
+                🤝 เปิดโหมด Co-op: ช่วยกันฟื้นฟูหมู่บ้านร่วมกัน (เมื่อเพื่อนคนใดผ่านสัปดาห์ อาคารจะ Online ทั้งห้อง!)
+              </label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button id="btn-mp-invite-link" class="wood-btn small-btn win-btn hidden">🔗 คัดลอกลิงก์ชวนนักเรียนทั้งห้อง</button>
+                <button id="btn-mp-disconnect" class="wood-btn small-btn danger-btn hidden">🔌 ออกจากห้อง</button>
+              </div>
+            </div>
+
+            <!-- Featured Card: Large Classroom 40–100 Players on GitHub Pages (Firebase Free) -->
+            <div class="lab-panel" style="margin-bottom:12px;border-color:#0284c7;background:#f0f9ff;">
+              <h4>☁️ แบบที่ 1 (แนะนำสำหรับ 40–100 คนบน GitHub Pages): ห้องเรียนคลาวด์ Firebase ฟรี</h4>
+              <p class="shop-desc" style="margin-bottom:8px;">
+                รองรับนักเรียนเข้าพร้อมกันสูงสุด <strong>100 คนในห้องเดียว</strong> ไม่หน่วงเครื่องครู และไม่ติดบล็อกเน็ตวิทยาลัย (สร้าง Database ฟรีใน 2 นาที ดูคู่มือ <code>FIREBASE-SETUP.md</code> หรือฝัง URL ถาวรใน <code>js/firebase-config.js</code>)
+              </p>
+              <div class="setup-grid" style="margin-bottom:8px;">
+                <div class="lab-field" style="margin-bottom:0;">
+                  <label>Firebase Realtime Database URL</label>
+                  <input id="mp-fb-url" class="pixel-input" placeholder="https://your-project-default-rtdb.asia-southeast1.firebasedatabase.app" />
+                </div>
+                <div class="lab-field" style="margin-bottom:0;">
+                  <label>ชื่อห้องเรียน (เช่น PVC21 หรือ CLASS1)</label>
+                  <input id="mp-fb-room" class="pixel-input" value="CLASS1" maxlength="20" />
+                </div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                <button id="btn-mp-fb-connect" class="wood-btn win-btn">☁️ เข้าห้องเรียนใหญ่ (40–100 คน)</button>
+                <button id="btn-mp-fb-copy-link" class="wood-btn small-btn">🔗 คัดลอกลิงก์ชวนเข้าห้องนี้</button>
+              </div>
+            </div>
+
+            <div class="lab-card-grid">
+              <div class="lab-panel">
+                <h4>🌐 แบบที่ 2: รหัสห้องออนไลน์ (2–25 คน • ไม่ต้องตั้งค่า)</h4>
+                <p class="shop-desc" style="margin-bottom:8px;">
+                  สร้างห้องรับรหัส เช่น <code>SV4821</code> แชร์ให้เพื่อนใส่เพื่อเดินเล่น &amp; แชทพร้อมกัน (พิมพ์ <code>LOCAL</code> เพื่อทดสอบ 2 แท็บบนเครื่องเดียว!)
+                </p>
+                <div class="lab-field">
+                  <label>รหัสห้อง (Room Code)</label>
+                  <div style="display:flex;gap:6px;">
+                    <input id="mp-room-input" class="pixel-input" placeholder="เช่น SV4821 หรือ LOCAL" maxlength="16" />
+                    <button id="btn-mp-copy" class="wood-btn small-btn" title="คัดลอกรหัสห้อง">📋</button>
+                  </div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                  <button id="btn-mp-host" class="wood-btn primary-btn">🏠 สร้างห้องออนไลน์ (Host)</button>
+                  <button id="btn-mp-join" class="wood-btn win-btn">🚪 เข้าร่วมห้อง</button>
+                </div>
+              </div>
+
+              <div class="lab-panel">
+                <h4>🏫 แบบที่ 3: โหมด LAN ห้องแล็บ (ไม่ใช้อินเทอร์เน็ต 100%)</h4>
+                <p class="shop-desc" style="margin-bottom:8px;">
+                  เครื่องครูดับเบิลคลิก <code>start-lan-server.bat</code> หรือรัน <code>python3 lan-server/server.py</code> (รองรับ 40–80 คนในวง LAN!) แล้วกรอก IP เครื่องครู:
+                </p>
+                <div class="lab-field">
+                  <label>ที่อยู่ LAN Server เครื่องครู</label>
+                  <input id="mp-lan-url" class="pixel-input" placeholder="http://192.168.1.10:8080" />
+                </div>
+                <div class="lab-field">
+                  <label>ชื่อห้องเรียน (Room)</label>
+                  <input id="mp-lan-room" class="pixel-input" value="CLASS1" maxlength="16" />
+                </div>
+                <button id="btn-mp-lan-connect" class="wood-btn primary-btn">🏫 เชื่อมต่อ LAN Server ห้องแล็บ</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Leaderboard -->
+          <div id="mp-pane-leaderboard" class="mp-pane hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+              <div><strong>🏆 อันดับคะแนนในห้องเรียนแบบเรียลไทม์</strong> (สูตร: สัปดาห์ที่ผ่าน×100 + Master Quiz×20 + Bytes)</div>
+              <button id="btn-lb-refresh" class="wood-btn small-btn">🔄 รีเฟรช</button>
+            </div>
+            <div id="mp-leaderboard-wrap"></div>
+          </div>
+
+          <!-- Tab 3: Teacher Dashboard -->
+          <div id="mp-pane-teacher" class="mp-pane hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+              <div>
+                <strong>👩‍🏫 หน้าจอติดตามความก้าวหน้าสำหรับครูผู้สอน (Teacher Dashboard)</strong>
+                <div style="font-size:12.5px;color:#6e4526;">เห็นตำแหน่งโซน สัปดาห์ที่ผ่าน และคะแนน Master Quiz ของนักเรียนทุกคนในห้องแบบสด ๆ</div>
+              </div>
+              <button id="btn-export-csv" class="wood-btn primary-btn">📥 Export รายงานคะแนน (CSV สำหรับ Excel)</button>
+            </div>
+            <div id="teacher-summary-cards" class="teacher-stats-grid"></div>
+            <div id="teacher-table-wrap"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Certificate / Graduation & Editable Institution Info Modal -->
+      <div id="modal-cert" class="modal-window wood-panel medium-modal hidden">
+        <div class="modal-header no-print">
+          <div>
+            <h2>🎓 เกียรติบัตรผู้ดูแลระบบ Server Valley (ปวช.)</h2>
+            <p class="modal-sub">แก้ไขชื่อนักเรียน วิทยาลัย และชื่อครูผู้สอนได้ทันที แล้วกดพิมพ์หรือบันทึกเป็น PDF</p>
+          </div>
+          <button class="close-btn" data-close="modal-cert">✕</button>
+        </div>
+        <div id="cert-body" class="cert-body modal-body-scroll"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts (PeerJS & Firebase optional CDNs for GitHub Pages Multiplayer; LAN & Offline work 100% without internet) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js" defer></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/codex-data.js"></script>
+  <script src="js/game-data.js"></script>
+  <script src="js/labs.js"></script>
+  <script src="js/multiplayer.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
