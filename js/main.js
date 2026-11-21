@@ -1936,7 +1936,7 @@
     pCtx.clearRect(0, 0, pv.width, pv.height);
     const frame = custWalk ? (Math.floor(tick / 12) % 4) : 0;
     const dir = CUST_DIRS[custDirIdx];
-    Sprites.drawCharacter(pCtx, 32, 34, profileToStyle(custDraft), dir, frame, 6, tick);
+    Sprites.drawCharacter(pCtx, 20, 14, profileToStyle(custDraft), dir, frame, 6, tick);
   }
 
   function buildCustomizerUI() {
