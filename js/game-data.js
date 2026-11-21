@@ -302,11 +302,100 @@ window.GAME_DATA = (function () {
     { id: 'crate_coffee_se', tx: 58, ty: 35, itemId: 'admin_coffee', qty: 2, label: 'กล่องกาแฟแอดมิน (โซน 4)' }
   ];
 
-  // Special Interactive Landmarks (Rest Bed, IT Shop, Fast-Travel Totem)
+  // Special Interactive Landmarks (Rest Bed, Grand IT General Store, Fast-Travel Totem)
   const SPECIAL_PROPS = [
     { id: 'rest_spot', kind: 'bed', tx: 10, ty: 7, label: 'พักผ่อนที่บ้านพัก (ฟื้นพลังงานเต็ม 100%)' },
-    { id: 'it_shop', kind: 'shop', tx: 38, ty: 24, label: 'ร้านค้าอุปกรณ์ไอที (IT Store)' },
+    { id: 'it_shop', kind: 'shop', tx: 35, ty: 23, label: '🏪 เข้าซื้อของที่ห้างสรรพสินค้าไอที (Server Valley IT General Store)' },
     { id: 'warp_sign', kind: 'warp', tx: 45, ty: 24, label: 'ป้ายวาร์ปด่วนไปทั้ง 4 โซน (เปิดแผนที่ M)' }
+  ];
+
+  // 9 Village Scenery & Town Store Buildings (Grand IT General Store, Café & Bakery, Tech Bookstore, Glass Greenhouse, Barn & Silo, Hardware Forge & Villager Cottages!)
+  const SCENERY_BUILDINGS = [
+    {
+      id: 'it_general_store',
+      kind: 'it_store',
+      action: 'shop',
+      shortName: '🏪 ห้างไอที IT Mart',
+      fullName: 'ห้างสรรพสินค้าอุปกรณ์ไอที (Server Valley IT General Store)',
+      tx: 32, ty: 19, tw: 7, th: 4,
+      roofColor: '#c92a2a', roofDark: '#7f1d1d', wallColor: '#fff3d1'
+    },
+    {
+      id: 'tech_bookstore',
+      kind: 'bookstore',
+      action: 'codex',
+      shortName: '📚 ร้านหนังสือไอที',
+      fullName: 'ศูนย์หนังสือและคู่มือเซิร์ฟเวอร์ (Valley Tech Bookstore)',
+      tx: 44, ty: 19, tw: 6, th: 4,
+      roofColor: '#1d4ed8', roofDark: '#1e3a8a', wallColor: '#eff6ff'
+    },
+    {
+      id: 'cafe_bakery',
+      kind: 'cafe',
+      action: 'shop',
+      shortName: '☕ คาเฟ่แอดมิน',
+      fullName: 'ร้านกาแฟแอดมินและเบเกอรีไบต์ (Admin Coffee & Byte Bakery)',
+      tx: 33, ty: 4, tw: 6, th: 4,
+      roofColor: '#15803d', roofDark: '#14532d', wallColor: '#fef9c3'
+    },
+    {
+      id: 'villager_cottage_nw',
+      kind: 'cottage_deco',
+      action: 'flavor',
+      shortName: '🏡 บ้านช่างเทคนิค',
+      fullName: 'บ้านพักช่างเทคนิคประจำหมู่บ้าน (Technician Cottage)',
+      tx: 29, ty: 13, tw: 6, th: 4,
+      roofColor: '#b45309', roofDark: '#78350f', wallColor: '#fde68a',
+      flavorText: '🏡 บ้านพักช่างเทคนิคประจำหมู่บ้าน — กลิ่นซุปหอมกรุ่นลอยออกมาจากปล่องไฟ!'
+    },
+    {
+      id: 'valley_barn',
+      kind: 'barn',
+      action: 'flavor',
+      shortName: '🌾 โรงนา & ไซโล',
+      fullName: 'โรงนาและหอไซโลเก็บเสบียงหมู่บ้าน (Server Valley Red Barn & Silo)',
+      tx: 73, ty: 13, tw: 6, th: 4,
+      roofColor: '#b91c1c', roofDark: '#7f1d1d', wallColor: '#dc2626',
+      flavorText: '🌾 โรงนาและไซโลประจำหมู่บ้าน — เก็บเสบียงอาหารและสายไฟเบอร์สำรองของหมู่บ้าน!'
+    },
+    {
+      id: 'smart_greenhouse',
+      kind: 'greenhouse',
+      action: 'flavor',
+      shortName: '🌿 เรือนกระจก IoT',
+      fullName: 'เรือนกระจกเกษตรอัจฉริยะ (Smart IoT Glass Greenhouse)',
+      tx: 29, ty: 30, tw: 6, th: 4,
+      roofColor: '#38bdf8', roofDark: '#0284c7', wallColor: '#e0f2fe',
+      flavorText: '🌿 เรือนกระจกอัจฉริยะควบคุมอุณหภูมิและความชื้นอัตโนมัติด้วย Linux Cron Job!'
+    },
+    {
+      id: 'hardware_forge',
+      kind: 'forge',
+      action: 'shop',
+      shortName: '🛠️ โรงซ่อมฮาร์ดแวร์',
+      fullName: 'ร้านช่างตีเหล็กและซ่อมบำรุงเมนบอร์ด (Hardware Forge & Repair)',
+      tx: 15, ty: 39, tw: 6, th: 4,
+      roofColor: '#57534e', roofDark: '#292524', wallColor: '#d6d3d1'
+    },
+    {
+      id: 'admin_residence_se',
+      kind: 'cottage_deco',
+      action: 'flavor',
+      shortName: '🏠 บ้านแอดมินอาวุโส',
+      fullName: 'บ้านพักวิศวกรความมั่นคงปลอดภัย (Security Engineer House)',
+      tx: 56, ty: 30, tw: 6, th: 4,
+      roofColor: '#6d28d9', roofDark: '#4c1d95', wallColor: '#f3e8ff',
+      flavorText: '🏠 บ้านพักวิศวกรความมั่นคง — ประตูหน้าบ้านล็อกด้วยรหัส SSH Key 4096-bit!'
+    },
+    {
+      id: 'server_clinic_se',
+      kind: 'bookstore',
+      action: 'codex',
+      shortName: '🏥 คลินิกกู้ภัยระบบ',
+      fullName: 'คลินิกตรวจสุขภาพและกู้ภัยเซิร์ฟเวอร์ (Server Clinic & Guild)',
+      tx: 56, ty: 39, tw: 6, th: 4,
+      roofColor: '#0f766e', roofDark: '#134e4a', wallColor: '#ccfbf1'
+    }
   ];
 
   // 14 Expressive Village NPCs
@@ -768,8 +857,8 @@ window.GAME_DATA = (function () {
     const occupied = new Set();
     const mark = (x, y) => occupied.add(x + ',' + y);
 
-    // Protect buildings + 2-tile apron around them
-    BUILDINGS.forEach((b) => {
+    // Protect buildings + scenery buildings + 2-tile apron around them
+    [...BUILDINGS, ...SCENERY_BUILDINGS].forEach((b) => {
       for (let y = b.ty - 1; y <= b.ty + b.th + 1; y++) {
         for (let x = b.tx - 1; x <= b.tx + b.tw; x++) mark(x, y);
       }
@@ -820,6 +909,7 @@ window.GAME_DATA = (function () {
     PLAYER_STYLE,
     ITEMS,
     BUILDINGS,
+    SCENERY_BUILDINGS,
     STATIONS,
     CRATES,
     SPECIAL_PROPS,

@@ -466,16 +466,24 @@
       const t = tileMap[ty][tx];
       if (t === 'water' || t === 'fence') return true;
 
-      // Building footprints
+      // Building footprints (Quest Buildings + Town Scenery & Store Buildings)
       for (const b of GD.BUILDINGS) {
         if (tx >= b.tx && tx < b.tx + b.tw && ty >= b.ty && ty < b.ty + b.th) {
           return true;
         }
       }
+      if (GD.SCENERY_BUILDINGS) {
+        for (const sb of GD.SCENERY_BUILDINGS) {
+          if (tx >= sb.tx && tx < sb.tx + sb.tw && ty >= sb.ty && ty < sb.ty + sb.th) {
+            return true;
+          }
+        }
+      }
 
-      // Trees O(1) lookup & Central Plaza Fountain
+      // Trees O(1) lookup & Central Plaza Fountain & Admin Farmyard Well
       if (treeLookup.has(tx + ',' + ty)) return true;
       if ((tx === 41 || tx === 42) && ty === 24) return true;
+      if ((tx === 12 || tx === 13) && ty === 14) return true;
     }
     return false;
   }
@@ -524,13 +532,27 @@
       consider('building_door', b, doorWx, doorWy - 2, `🚪 เข้าสู่อาคาร: ${b.shortName}`);
     });
 
+    // Town Store & Scenery Building Front Doors (Grand IT General Store, Café, Bookstore, etc.)
+    if (GD.SCENERY_BUILDINGS) {
+      GD.SCENERY_BUILDINGS.forEach((sb) => {
+        const doorWx = (sb.tx + sb.tw / 2) * TILE;
+        const doorWy = (sb.ty + sb.th) * TILE;
+        const lbl = sb.action === 'shop'
+          ? `🛒 ซื้อของที่ ${sb.shortName}`
+          : sb.action === 'codex'
+          ? `📚 เปิดคลังความรู้ที่ ${sb.shortName}`
+          : `🔍 สำรวจ ${sb.shortName}`;
+        consider('scenery_door', sb, doorWx, doorWy - 2, lbl);
+      });
+    }
+
     GD.CRATES.forEach((c) => {
       if (!state.openedCrates.includes(c.id)) {
         consider('crate', c, c.tx * TILE + 16, c.ty * TILE + 16, `เก็บ ${c.label}`);
       }
     });
     GD.SPECIAL_PROPS.forEach((sp) => {
-      if (sp.kind !== 'bed') {
+      if (sp.kind !== 'bed' && sp.kind !== 'shop') {
         consider('special', sp, sp.tx * TILE + 16, sp.ty * TILE + 16, sp.label);
       }
     });
@@ -550,12 +572,25 @@
     if (!target) {
       showToast(state.insideBuildingId
         ? 'เดินเข้าใกล้ผู้เชี่ยวชาญ ตู้เซิร์ฟเวอร์ กล่องอุปกรณ์ หรือประตูทางออก แล้วกด E'
-        : 'เดินไปหน้าประตูอาคารเรียนของแต่ละสัปดาห์แล้วกด E เพื่อเข้าไปรับเควสและทำแล็บด้านใน!');
+        : 'เดินไปหน้าประตูอาคารเรียนหรือร้านค้าไอที แล้วกด E เพื่อเข้าใช้งาน!');
       return;
     }
 
     if (target.kind === 'building_door') {
       enterBuilding(target.obj.id);
+      return;
+    }
+
+    if (target.kind === 'scenery_door') {
+      const sb = target.obj;
+      if (sb.action === 'shop') {
+        openShopModal();
+      } else if (sb.action === 'codex') {
+        openCodexModal();
+      } else {
+        SoundFX.click();
+        showToast(sb.flavorText || `🏡 ${sb.fullName}`, true);
+      }
       return;
     }
 
@@ -1238,7 +1273,22 @@
     mctx.fillText('โซน 3: แอป & Windows (ส.11–14)', 12, 424);
     mctx.fillText('โซน 4: มั่นคง & Log (ส.15–18)', 350, 424);
 
-    // Buildings
+    // Town Scenery & Store Buildings on Map
+    if (GD.SCENERY_BUILDINGS) {
+      GD.SCENERY_BUILDINGS.forEach((sb) => {
+        mctx.fillStyle = sb.roofColor;
+        mctx.fillRect(sb.tx * s, sb.ty * s, sb.tw * s, sb.th * s);
+        mctx.strokeStyle = '#fde047';
+        mctx.lineWidth = 1.5;
+        mctx.strokeRect(sb.tx * s, sb.ty * s, sb.tw * s, sb.th * s);
+        mctx.fillStyle = '#fff';
+        mctx.font = 'bold 8.5px Kanit, sans-serif';
+        mctx.textAlign = 'center';
+        mctx.fillText(sb.shortName, (sb.tx + sb.tw / 2) * s, (sb.ty + sb.th / 2 + 0.4) * s);
+      });
+    }
+
+    // Quest Buildings
     GD.BUILDINGS.forEach((b) => {
       const online = isBuildingOnline(b);
       mctx.fillStyle = b.roofColor;
@@ -1302,10 +1352,15 @@
       const hit = GD.BUILDINGS.find(
         (b) => tx >= b.tx - 1 && tx <= b.tx + b.tw + 1 && ty >= b.ty - 1 && ty <= b.ty + b.th + 1
       );
+      const hitScenery = !hit && GD.SCENERY_BUILDINGS && GD.SCENERY_BUILDINGS.find(
+        (sb) => tx >= sb.tx - 1 && tx <= sb.tx + sb.tw + 1 && ty >= sb.ty - 1 && ty <= sb.ty + sb.th + 1
+      );
       if (hit) {
         warpToTile(hit.warpX, hit.warpY, hit.shortName);
+      } else if (hitScenery) {
+        warpToTile(hitScenery.tx + Math.floor(hitScenery.tw / 2), hitScenery.ty + hitScenery.th + 1, hitScenery.shortName);
       } else {
-        showToast('💡 คลิกที่อาคารใดก็ได้บนแผนที่เพื่อวาร์ปไปยังหน้าร้าน/ห้องแล็บนั้นทันที!');
+        showToast('💡 คลิกที่อาคารหรือร้านค้าใดก็ได้บนแผนที่เพื่อวาร์ปไปยังหน้าร้าน/ห้องแล็บนั้นทันที!');
       }
     };
 
@@ -1977,25 +2032,12 @@
       ctx.fillRect(Math.floor(vx), Math.floor(vy), 2, 10);
     }
 
-    // 2. Outdoor Central Plaza Landmarks (IT Shop Kiosk & Fast-Travel Warp Totem)
+    // 2. Outdoor Central Plaza Landmarks (Fast-Travel Warp Totem)
     GD.SPECIAL_PROPS.forEach((sp) => {
-      if (sp.kind === 'bed') return; // Bed is now inside Admin Cottage!
+      if (sp.kind === 'bed' || sp.kind === 'shop') return; // Bed is inside Cottage & IT Shop is now a full 7x4 General Store building!
       const wx = sp.tx * TILE;
       const wy = sp.ty * TILE;
-      if (sp.kind === 'shop') {
-        ctx.fillStyle = '#2e1608';
-        ctx.fillRect(wx - 6, wy - 6, 48, 38);
-        ctx.fillStyle = '#d94848';
-        ctx.fillRect(wx - 4, wy - 4, 44, 12);
-        ctx.fillStyle = '#fff5f5';
-        for (let sx = wx - 2; sx < wx + 38; sx += 8) ctx.fillRect(sx, wy - 4, 4, 10);
-        ctx.fillStyle = '#fff3d1';
-        ctx.fillRect(wx - 2, wy + 8, 40, 20);
-        ctx.fillStyle = '#381e0c';
-        ctx.font = 'bold 10px Kanit, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('🏪 IT Shop', wx + 18, wy + 22);
-      } else if (sp.kind === 'warp') {
+      if (sp.kind === 'warp') {
         ctx.fillStyle = '#1b3548';
         ctx.fillRect(wx, wy - 2, 32, 32);
         ctx.fillStyle = '#5ce1e6';
@@ -2011,6 +2053,17 @@
 
     // 3. Y-Sorted Renderables with Viewport Culling for fast 4x Map rendering
     const renderList = [];
+
+    // Town Scenery & Store Buildings (Grand 7x4 IT General Store, Café & Bakery, Tech Bookstore, Glass Greenhouse, Red Barn & Silo, Hardware Forge & Villager Cottages!)
+    if (GD.SCENERY_BUILDINGS) {
+      GD.SCENERY_BUILDINGS.forEach((sb) => {
+        if (sb.tx + sb.tw < startX - 2 || sb.tx > endX + 2 || sb.ty + sb.th < startY - 2 || sb.ty > endY + 2) return;
+        renderList.push({
+          y: (sb.ty + sb.th) * TILE,
+          draw: () => Sprites.drawSceneryBuilding(ctx, sb, tick)
+        });
+      });
+    }
 
     // Central Plaza Animated Well / Fountain & Admin Farmyard Roofed Stone Water Well!
     if (41 >= startX - 3 && 41 <= endX + 3 && 24 >= startY - 3 && 24 <= endY + 3) {

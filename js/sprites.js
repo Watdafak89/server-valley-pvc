@@ -1238,6 +1238,270 @@ window.Sprites = (function () {
     ctx.restore();
   }
 
+  // ==================== STARDEW VALLEY TOWN SHOPS & SCENERY BUILDINGS ====================
+  // Renders: (1) Grand 2-Story IT General Store (Pierre's General Store style!),
+  // (2) Admin Coffee & Bakery, (3) Smart Glass Greenhouse, (4) Red Barn & Silo,
+  // (5) Hardware Forge & Blacksmith, (6) Tech Bookstore & Villager Cottages!
+  function drawSceneryBuilding(ctx, sb, tick) {
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    const x = sb.tx * 32;
+    const y = sb.ty * 32;
+    const w = sb.tw * 32;
+    const h = sb.th * 32;
+    const ol = '#291306';
+
+    // Ground shadow
+    px(ctx, x + 4, y + h - 2, w - 4, 12, 'rgba(38, 22, 8, 0.32)');
+
+    // ===== 1. GRAND 2-STORY SERVER VALLEY IT GENERAL STORE (7x4 tiles = 224x128 px) =====
+    if (sb.kind === 'it_store') {
+      // Upper 2nd Story Facade & Shingle Roof
+      px(ctx, x - 4, y - 14, w + 8, 38, ol);
+      px(ctx, x - 2, y - 12, w + 4, 34, '#b91c1c');
+      px(ctx, x - 2, y - 12, w + 4, 5, '#ef4444');
+      px(ctx, x - 2, y + 16, w + 4, 6, '#7f1d1d');
+      for (let rx = x + 6; rx < x + w - 8; rx += 14) {
+        px(ctx, rx, y - 10, 3, 28, '#7f1d1d');
+        px(ctx, rx + 3, y - 10, 2, 28, '#f87171');
+      }
+
+      // Grand Rooftop Store Billboard Sign ("🏪 SERVER VALLEY IT GENERAL STORE")
+      const billW = 176;
+      const billX = x + Math.floor((w - billW) / 2);
+      const billY = y - 24;
+      px(ctx, billX - 2, billY - 2, billW + 4, 28, ol);
+      px(ctx, billX, billY, billW, 24, '#78350f');
+      px(ctx, billX + 3, billY + 3, billW - 6, 18, '#fef3c7');
+      // Animated marquee bulbs on sign corners
+      const bulbOn = Math.floor(tick / 12) % 2 === 0;
+      px(ctx, billX + 6, billY + 6, 4, 4, bulbOn ? '#f59e0b' : '#fde047');
+      px(ctx, billX + billW - 10, billY + 6, 4, 4, bulbOn ? '#fde047' : '#f59e0b');
+      ctx.fillStyle = '#7f1d1d';
+      ctx.font = 'bold 11.5px Kanit, Tahoma, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🏪 ห้างอุปกรณ์ไอที IT GENERAL STORE', billX + billW / 2, billY + 16);
+
+      // Main Timber-Framed Storefront Wall
+      px(ctx, x + 2, y + 20, w - 4, h - 22, ol);
+      px(ctx, x + 4, y + 22, w - 8, h - 26, '#f6deb0');
+      // Vertical wood pillars
+      px(ctx, x + 4, y + 22, 8, h - 26, '#8c4b1a');
+      px(ctx, x + w - 12, y + 22, 8, h - 26, '#8c4b1a');
+      px(ctx, x + Math.floor(w / 2) - 24, y + 22, 6, h - 26, '#8c4b1a');
+      px(ctx, x + Math.floor(w / 2) + 18, y + 22, 6, h - 26, '#8c4b1a');
+
+      // Full-Width Red & White Striped Storefront Canopy Awning!
+      const awnY = y + 24;
+      px(ctx, x - 4, awnY, w + 8, 22, ol);
+      for (let ax = x - 2; ax < x + w - 2; ax += 12) {
+        const isRed = ((ax - x) / 12) % 2 === 0;
+        px(ctx, ax, awnY + 2, 12, 14, isRed ? '#dc2626' : '#fffbeb');
+        px(ctx, ax, awnY + 14, 12, 4, isRed ? '#991b1b' : '#fde68a');
+      }
+      // Awning drop shadow on wall
+      px(ctx, x + 4, awnY + 22, w - 8, 6, 'rgba(38, 16, 4, 0.28)');
+
+      // Left & Right Large Illuminated Storefront Showcase Windows
+      const drawShowcaseWindow = (wx, wy, isLeft) => {
+        px(ctx, wx, wy, 56, 36, ol);
+        px(ctx, wx + 2, wy + 2, 52, 32, '#7c431e');
+        px(ctx, wx + 4, wy + 4, 48, 28, '#fef08a');
+        px(ctx, wx + 6, wy + 6, 44, 22, '#fffbeb');
+        // Shelves inside window with pixel IT gear (monitors, RAM, coffee, USBs)
+        px(ctx, wx + 6, wy + 18, 44, 2, '#b45309');
+        if (isLeft) {
+          // Mini pixel monitor + keyboard + LAN spool in left window
+          px(ctx, wx + 10, wy + 8, 14, 10, '#1e293b');
+          px(ctx, wx + 12, wy + 10, 10, 6, '#38bdf8');
+          px(ctx, wx + 30, wy + 10, 10, 8, '#16a34a');
+          px(ctx, wx + 12, wy + 21, 12, 6, '#d97706');
+          px(ctx, wx + 32, wy + 21, 10, 6, '#2563eb');
+        } else {
+          // Server rack unit + Admin Coffee + Golden Shields in right window
+          px(ctx, wx + 10, wy + 8, 12, 10, '#dc2626');
+          px(ctx, wx + 12, wy + 10, 8, 6, '#fde047');
+          px(ctx, wx + 28, wy + 9, 14, 9, '#334155');
+          px(ctx, wx + 30, wy + 11, 4, 2, '#4ade80');
+          px(ctx, wx + 12, wy + 21, 14, 6, '#7c3aed');
+          px(ctx, wx + 32, wy + 21, 10, 6, '#ea580c');
+        }
+      };
+      drawShowcaseWindow(x + 16, y + 52, true);
+      drawShowcaseWindow(x + w - 72, y + 52, false);
+
+      // Center Double Glass Storefront Doors + "OPEN" Sign!
+      const doorX = x + Math.floor(w / 2) - 20;
+      const doorY = y + 50;
+      px(ctx, doorX, doorY, 40, 56, ol);
+      px(ctx, doorX + 2, doorY + 2, 36, 52, '#9a5220');
+      px(ctx, doorX + 5, doorY + 6, 13, 28, '#bae6fd');
+      px(ctx, doorX + 22, doorY + 6, 13, 28, '#bae6fd');
+      // "OPEN" plaque in door window
+      px(ctx, doorX + 12, doorY + 15, 16, 8, '#16a34a');
+      px(ctx, doorX + 14, doorY + 17, 12, 4, '#dcfce7');
+
+      // Raised Wooden Storefront Sidewalk Porch & Outdoor Merchandise Stalls!
+      const porchY = y + h - 22;
+      px(ctx, x - 2, porchY, w + 4, 22, ol);
+      px(ctx, x, porchY + 2, w, 12, '#d4873c');
+      px(ctx, x, porchY + 14, w, 6, '#9e581c');
+      // Red Carpet Welcome Mat in front of Double Doors
+      px(ctx, doorX - 2, porchY + 2, 44, 12, '#7f1d1d');
+      px(ctx, doorX, porchY + 4, 40, 8, '#dc2626');
+      ctx.fillStyle = '#fef08a';
+      ctx.font = 'bold 9px Kanit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🛒 ซื้อของ [E]', doorX + 20, porchY + 11);
+
+      // Left Outdoor Display Table (Hardware & Coffee Crates)
+      px(ctx, x + 10, porchY - 8, 48, 16, ol);
+      px(ctx, x + 12, porchY - 6, 44, 12, '#b86b2e');
+      px(ctx, x + 15, porchY - 12, 12, 9, '#2563eb');
+      px(ctx, x + 30, porchY - 12, 12, 9, '#f59e0b');
+      px(ctx, x + 44, porchY - 11, 10, 8, '#16a34a');
+
+      // Right Outdoor Barrel & "SALE 🪙" A-Frame Signboard
+      px(ctx, x + w - 54, porchY - 12, 18, 20, ol);
+      px(ctx, x + w - 52, porchY - 10, 14, 16, '#fbbf24');
+      px(ctx, x + w - 50, porchY - 8, 10, 10, '#1e293b');
+      px(ctx, x + w - 48, porchY - 5, 6, 4, '#4ade80');
+      px(ctx, x + w - 30, porchY - 10, 16, 18, ol);
+      px(ctx, x + w - 28, porchY - 8, 12, 14, '#a85e21');
+      ctx.restore();
+      return;
+    }
+
+    // ===== 2. SMART GLASS GREENHOUSE (Stardew Valley Translucent Glass Greenhouse!) =====
+    if (sb.kind === 'greenhouse') {
+      // Stone Brick Lower Foundation
+      px(ctx, x + 2, y + 26, w - 4, h - 28, ol);
+      px(ctx, x + 4, y + 28, w - 8, h - 32, '#78716c');
+      // Translucent Blue-Cyan Glass Walls & Lush Plants Visible Inside!
+      px(ctx, x + 6, y + 30, w - 12, h - 46, '#bae6fd');
+      // Lush green plants & red fruits inside glass
+      for (let gx = x + 12; gx < x + w - 20; gx += 22) {
+        px(ctx, gx, y + 44, 16, 26, '#15803d');
+        px(ctx, gx + 2, y + 40, 12, 22, '#22c55e');
+        px(ctx, gx + 4, y + 48, 4, 4, '#ef4444');
+        px(ctx, gx + 10, y + 54, 4, 4, '#f59e0b');
+      }
+      // Pitched Glass Roof with Iron Mullion Grid & Diagonal White Sheen
+      for (let step = 0; step < 6; step++) {
+        const inset = step * 10;
+        const ry = y + 24 - step * 4;
+        px(ctx, x + inset, ry, w - inset * 2, 8, ol);
+        px(ctx, x + inset + 2, ry + 1, w - inset * 2 - 4, 6, step % 2 === 0 ? '#7dd3fc' : '#e0f2fe');
+      }
+      // Vertical iron glass-frame bars
+      for (let fx = x + 16; fx < x + w - 12; fx += 20) {
+        px(ctx, fx, y + 8, 3, h - 22, '#334155');
+      }
+      // Wooden Greenhouse Door
+      const doorX = x + Math.floor(w / 2) - 14;
+      px(ctx, doorX, y + h - 36, 28, 34, ol);
+      px(ctx, doorX + 2, y + h - 34, 24, 30, '#b86b2e');
+      px(ctx, doorX + 5, y + h - 30, 18, 16, '#e0f2fe');
+      // Signboard
+      px(ctx, x + 36, y + 10, w - 72, 16, ol);
+      px(ctx, x + 38, y + 12, w - 76, 12, '#faeccb');
+      ctx.fillStyle = '#14532d';
+      ctx.font = 'bold 10px Kanit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(sb.shortName, x + w / 2, y + 22);
+      ctx.restore();
+      return;
+    }
+
+    // ===== 3. STARDEW RED BARN & TALL CYLINDRICAL FARM SILO =====
+    if (sb.kind === 'barn') {
+      // Tall Cylindrical Farm Silo on the Right Side!
+      const siloX = x + w - 34;
+      const siloY = y - 26;
+      px(ctx, siloX, siloY + 12, 32, h + 12, ol);
+      px(ctx, siloX + 2, siloY + 14, 28, h + 8, '#b45309');
+      px(ctx, siloX + 4, siloY + 14, 10, h + 8, '#d97706');
+      for (let sy = siloY + 24; sy < y + h - 8; sy += 16) {
+        px(ctx, siloX + 1, sy, 30, 3, '#475569'); // steel silo hoops
+      }
+      // Domed Silver Silo Roof
+      px(ctx, siloX - 2, siloY + 4, 36, 12, ol);
+      px(ctx, siloX + 2, siloY - 2, 28, 8, ol);
+      px(ctx, siloX, siloY + 6, 32, 8, '#94a3b8');
+      px(ctx, siloX + 4, siloY, 24, 6, '#cbd5e1');
+
+      // Crimson Red Barn Body
+      const bw = w - 28;
+      px(ctx, x + 2, y + 24, bw, h - 26, ol);
+      px(ctx, x + 4, y + 26, bw - 4, h - 30, '#dc2626');
+      for (let bx = x + 10; bx < x + bw - 4; bx += 8) {
+        px(ctx, bx, y + 26, 2, h - 30, '#991b1b');
+      }
+      // Gambrel Barn Roof with White Trim
+      for (let step = 0; step < 6; step++) {
+        const inset = step * 10;
+        const ry = y + 22 - step * 4;
+        px(ctx, x + inset - 2, ry, bw - inset * 2 + 4, 8, ol);
+        px(ctx, x + inset, ry + 1, bw - inset * 2, 6, '#7f1d1d');
+        px(ctx, x + inset + 2, ry + 1, bw - inset * 2 - 4, 2, '#f8fafc');
+      }
+      // Double White X-Braced Barn Doors
+      const doorX = x + Math.floor(bw / 2) - 22;
+      const doorY = y + h - 42;
+      px(ctx, doorX, doorY, 44, 40, ol);
+      px(ctx, doorX + 2, doorY + 2, 40, 36, '#f8fafc');
+      px(ctx, doorX + 6, doorY + 6, 15, 28, '#dc2626');
+      px(ctx, doorX + 23, doorY + 6, 15, 28, '#dc2626');
+      // Golden Hay Bales stacked beside door
+      px(ctx, x + 8, y + h - 18, 18, 14, ol);
+      px(ctx, x + 10, y + h - 16, 14, 10, '#eab308');
+      px(ctx, x + 10, y + h - 16, 14, 3, '#fef08a');
+      ctx.restore();
+      return;
+    }
+
+    // ===== 4. CAFE & BAKERY / BOOKSTORE / HARDWARE FORGE / VILLAGER COTTAGES =====
+    // First draw base Stardew cabin body using drawBuilding
+    drawBuilding(ctx, { ...sb, units: [] }, true, tick);
+
+    // Add custom storefront awning & outdoor props!
+    const porchY = y + h - 22;
+    if (sb.kind === 'cafe') {
+      // Green & Cream Striped Café Awning + Outdoor Umbrella Table!
+      for (let ax = x + 4; ax < x + w - 16; ax += 12) {
+        const isGrn = ((ax - x) / 12) % 2 === 0;
+        px(ctx, ax, y + 30, 12, 12, isGrn ? '#15803d' : '#fef9c3');
+      }
+      // Outdoor Café Umbrella & Table on Left
+      px(ctx, x + 10, porchY - 18, 28, 10, ol);
+      px(ctx, x + 12, porchY - 16, 24, 6, '#ef4444');
+      px(ctx, x + 22, porchY - 8, 4, 14, '#78350f');
+      px(ctx, x + 14, porchY + 2, 20, 6, '#faeccb');
+    } else if (sb.kind === 'bookstore') {
+      // Blue & White Striped Bookstore Awning + Outdoor Book Cart!
+      for (let ax = x + 4; ax < x + w - 16; ax += 12) {
+        const isBlu = ((ax - x) / 12) % 2 === 0;
+        px(ctx, ax, y + 30, 12, 12, isBlu ? '#1d4ed8' : '#eff6ff');
+      }
+      // Outdoor Book Display Stand
+      px(ctx, x + 12, porchY - 8, 32, 16, ol);
+      px(ctx, x + 14, porchY - 6, 28, 12, '#b86b2e');
+      px(ctx, x + 16, porchY - 10, 6, 6, '#ef4444');
+      px(ctx, x + 24, porchY - 10, 6, 6, '#3b82f6');
+      px(ctx, x + 32, porchY - 10, 6, 6, '#22c55e');
+    } else if (sb.kind === 'forge') {
+      // Glowing Brick Forge Furnace & Iron Anvil outside!
+      px(ctx, x + 10, porchY - 22, 30, 26, ol);
+      px(ctx, x + 12, porchY - 20, 26, 22, '#57534e');
+      const glow = Math.floor(tick / 8) % 2 === 0 ? '#f97316' : '#fbbf24';
+      px(ctx, x + 17, porchY - 10, 16, 10, glow);
+      // Iron Anvil
+      px(ctx, x + 46, porchY - 6, 18, 10, '#1e293b');
+      px(ctx, x + 44, porchY - 10, 22, 5, '#475569');
+    }
+    ctx.restore();
+  }
+
   return {
     drawCharacter,
     getPortrait,
@@ -1245,6 +1509,7 @@ window.Sprites = (function () {
     drawTile,
     drawTree,
     drawBuilding,
+    drawSceneryBuilding,
     drawBuildingInterior,
     drawServerRack,
     drawCrate,
