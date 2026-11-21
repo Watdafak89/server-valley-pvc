@@ -34,7 +34,15 @@ window.Sprites = (function () {
     }
   }
 
-  // ==================== 16-BIT CHARACTERS (with outlines, shading & eye blink) ====================
+  // ==================== 16-BIT CHARACTERS (Full Customization: Hair, Face, Skin, Shirt, Pants, Shoes) ====================
+  const SKIN_SHADOW_MAP = {
+    '#fde0c4': '#dfad8c',
+    '#f6cfa6': '#d49d72',
+    '#e3ae7c': '#bd8352',
+    '#c68642': '#9b5e24',
+    '#8d5524': '#633713'
+  };
+
   function drawCharacter(ctx, x, y, style, dir = 'down', frame = 0, scale = 2, tick = 0) {
     ctx.save();
     ctx.translate(Math.floor(x), Math.floor(y));
@@ -42,11 +50,15 @@ window.Sprites = (function () {
 
     const outline = '#2a1810';
     const skin = style.skin || '#f6cfa6';
-    const skinShadow = '#d69f74';
+    const skinShadow = SKIN_SHADOW_MAP[skin] || 'rgba(120, 62, 24, 0.25)';
     const shirt = style.shirt || '#2f7f5f';
+    const shirtStyle = style.shirtStyle || 'jacket';
     const accent = style.accent || '#eef7ee';
     const pants = style.pants || '#2e4a6b';
+    const shoes = style.shoes || '#5c3317';
     const hair = style.hair || '#4a2b18';
+    const hairStyle = style.hairStyle || 'short';
+    const faceStyle = style.faceStyle || (style.glasses ? 'glasses' : 'smile');
 
     const bob = frame % 2 === 1 ? -1 : 0;
     const idleBreath = frame === 0 && Math.floor(tick / 40) % 2 === 1 ? 0.5 : 0;
@@ -54,35 +66,58 @@ window.Sprites = (function () {
     const legR = -legL;
     const armSwing = frame === 1 ? 1 : frame === 3 ? -1 : 0;
     const blink = (tick % 210) > 202;
+    const by = bob + Math.floor(idleBreath);
 
     // Soft oval pixel shadow
     ctx.fillStyle = 'rgba(18, 28, 16, 0.36)';
     ctx.fillRect(3, 20, 10, 2);
     ctx.fillRect(4, 19, 8, 4);
 
-    // Legs & Boots (outlined)
+    // Back-layer long hair behind shoulders (when facing down/side)
+    if (hairStyle === 'long' && dir !== 'up') {
+      px(ctx, 1, 6 + by, 14, 9, outline);
+      px(ctx, 2, 7 + by, 12, 7, hair);
+      px(ctx, 2, 12 + by, 12, 2, 'rgba(0,0,0,0.22)');
+    }
+
+    // Legs (Pants) & Custom Shoes (outlined)
     px(ctx, 3, 16 + legL, 5, 5, outline);
     px(ctx, 8, 16 + legR, 5, 5, outline);
     px(ctx, 4, 16 + legL, 3, 3, pants);
     px(ctx, 9, 16 + legR, 3, 3, pants);
-    // Boot leather + highlight
-    px(ctx, 4, 18 + legL, 3, 2, '#5c3317');
-    px(ctx, 9, 18 + legR, 3, 2, '#5c3317');
-    px(ctx, 4, 18 + legL, 2, 1, '#824b26');
-    px(ctx, 9, 18 + legR, 2, 1, '#824b26');
+    // Subtle inner leg shading
+    px(ctx, 6, 16 + legL, 1, 3, 'rgba(0,0,0,0.2)');
+    px(ctx, 9, 16 + legR, 1, 3, 'rgba(0,0,0,0.2)');
+    // Custom Shoes + sunlit highlight + sole
+    px(ctx, 4, 18 + legL, 3, 2, shoes);
+    px(ctx, 9, 18 + legR, 3, 2, shoes);
+    px(ctx, 4, 18 + legL, 2, 1, 'rgba(255,255,255,0.3)');
+    px(ctx, 9, 18 + legR, 2, 1, 'rgba(255,255,255,0.3)');
 
-    const by = bob + Math.floor(idleBreath);
-
-    // Torso outline + 16-bit shaded tunic/jacket
+    // Torso outline + 16-bit Shirt Styles (jacket / polo / hoodie)
     px(ctx, 2, 9 + by, 12, 8, outline);
     px(ctx, 3, 10 + by, 10, 6, shirt);
-    // Shading & lapel highlight
-    px(ctx, 3, 14 + by, 10, 2, 'rgba(0,0,0,0.22)');
-    px(ctx, 5, 10 + by, 6, 5, accent);
-    px(ctx, 6, 11 + by, 4, 3, 'rgba(255,255,255,0.25)');
-    // Belt & golden buckle
-    px(ctx, 3, 15 + by, 10, 1, '#3b2110');
-    px(ctx, 7, 15 + by, 2, 1, '#f4c430');
+    px(ctx, 3, 14 + by, 10, 2, 'rgba(0,0,0,0.20)');
+
+    if (shirtStyle === 'jacket') {
+      px(ctx, 5, 10 + by, 6, 5, accent);
+      px(ctx, 6, 11 + by, 4, 3, 'rgba(255,255,255,0.25)');
+      px(ctx, 3, 15 + by, 10, 1, '#3b2110');
+      px(ctx, 7, 15 + by, 2, 1, '#f4c430');
+    } else if (shirtStyle === 'polo') {
+      // Crisp white collar + 2 buttons
+      px(ctx, 5, 10 + by, 2, 2, '#ffffff');
+      px(ctx, 9, 10 + by, 2, 2, '#ffffff');
+      px(ctx, 7, 11 + by, 2, 1, '#ffffff');
+      px(ctx, 7, 13 + by, 1, 1, 'rgba(255,255,255,0.8)');
+      px(ctx, 3, 15 + by, 10, 1, '#3b2110');
+    } else if (shirtStyle === 'hoodie') {
+      // Cozy hoodie drawstrings + front kangaroo pocket
+      px(ctx, 6, 10 + by, 1, 3, '#fff8e1');
+      px(ctx, 9, 10 + by, 1, 3, '#fff8e1');
+      px(ctx, 4, 13 + by, 8, 2, 'rgba(0,0,0,0.22)');
+      px(ctx, 5, 13 + by, 6, 1, 'rgba(255,255,255,0.18)');
+    }
 
     // Arms (outlined + shaded hands)
     px(ctx, 1, 10 + by + armSwing, 2, 6, outline);
@@ -97,74 +132,165 @@ window.Sprites = (function () {
     px(ctx, 3, 2 + by, 10, 7, skin);
     px(ctx, 3, 8 + by, 10, 1, skinShadow); // Chin shadow
 
-    // Hair base + 16-bit highlight sheen
+    // Base Hair Crown
     px(ctx, 2, 0 + by, 12, 4, outline);
     px(ctx, 3, 1 + by, 10, 3, hair);
-    px(ctx, 4, 1 + by, 6, 1, 'rgba(255,255,255,0.25)');
+    px(ctx, 4, 1 + by, 6, 1, 'rgba(255,255,255,0.26)');
+
+    // Extra Silhouette for Hairstyles
+    if (hairStyle === 'spiky' && !style.hat) {
+      px(ctx, 3, -2 + by, 3, 2, outline); px(ctx, 4, -1 + by, 2, 2, hair);
+      px(ctx, 7, -3 + by, 3, 3, outline); px(ctx, 8, -2 + by, 2, 3, hair);
+      px(ctx, 11, -2 + by, 2, 2, outline); px(ctx, 11, -1 + by, 2, 2, hair);
+    } else if (hairStyle === 'curly' && !style.hat) {
+      px(ctx, 1, 0 + by, 14, 5, outline);
+      px(ctx, 2, -1 + by, 12, 2, outline);
+      px(ctx, 2, 0 + by, 12, 4, hair);
+      px(ctx, 4, 0 + by, 3, 1, 'rgba(255,255,255,0.28)');
+      px(ctx, 9, 0 + by, 3, 1, 'rgba(255,255,255,0.24)');
+    }
 
     if (dir === 'up') {
+      // Back of head hair
       px(ctx, 3, 2 + by, 10, 7, hair);
       px(ctx, 4, 3 + by, 8, 2, 'rgba(255,255,255,0.16)');
+      if (hairStyle === 'long') {
+        px(ctx, 2, 7 + by, 12, 8, outline);
+        px(ctx, 3, 7 + by, 10, 7, hair);
+        px(ctx, 5, 9 + by, 6, 2, 'rgba(255,255,255,0.15)');
+      } else if (hairStyle === 'bob') {
+        px(ctx, 2, 4 + by, 12, 6, hair);
+      } else if (hairStyle === 'ponytail') {
+        px(ctx, 6, 6 + by, 4, 2, '#ff6b8b'); // hair tie
+        px(ctx, 5, 8 + by, 6, 5, outline);
+        px(ctx, 6, 8 + by, 4, 4, hair);
+      }
       if (style.hat) {
         px(ctx, 2, 0 + by, 12, 3, outline);
         px(ctx, 3, 0 + by, 10, 2, style.hat);
         px(ctx, 3, 2 + by, 10, 1, style.hatTrim || '#ffd166');
       }
-      if (style.backpack) {
+      if (style.backpack && hairStyle !== 'long') {
         px(ctx, 3, 10 + by, 10, 6, outline);
         px(ctx, 4, 11 + by, 8, 4, '#9c5221');
         px(ctx, 5, 11 + by, 6, 2, '#d89b52');
         px(ctx, 7, 13 + by, 2, 1, '#ffd54f');
       }
     } else {
-      // Side hair locks
-      px(ctx, 3, 3 + by, 1, 4, hair);
-      px(ctx, 12, 3 + by, 1, 4, hair);
+      // Side hair framing based on hairstyle
+      if (hairStyle === 'bob') {
+        px(ctx, 2, 3 + by, 2, 7, hair);
+        px(ctx, 12, 3 + by, 2, 7, hair);
+      } else if (hairStyle === 'long') {
+        px(ctx, 2, 3 + by, 2, 9, hair);
+        px(ctx, 12, 3 + by, 2, 9, hair);
+      } else if (hairStyle === 'curly') {
+        px(ctx, 1, 3 + by, 3, 5, hair);
+        px(ctx, 12, 3 + by, 3, 5, hair);
+      } else {
+        px(ctx, 3, 3 + by, 1, 4, hair);
+        px(ctx, 12, 3 + by, 1, 4, hair);
+      }
 
+      // Side ponytail visibility
+      if (hairStyle === 'ponytail') {
+        if (dir === 'left') {
+          px(ctx, 13, 4 + by, 2, 2, '#ff6b8b');
+          px(ctx, 14, 5 + by, 3, 5, outline);
+          px(ctx, 14, 6 + by, 2, 3, hair);
+        } else if (dir === 'right') {
+          px(ctx, 1, 4 + by, 2, 2, '#ff6b8b');
+          px(ctx, -1, 5 + by, 3, 5, outline);
+          px(ctx, 0, 6 + by, 2, 3, hair);
+        } else {
+          px(ctx, 13, 6 + by, 2, 4, hair);
+        }
+      }
+
+      // Face Expressions
       if (dir === 'down') {
-        if (!blink) {
-          px(ctx, 5, 5 + by, 2, 2, '#1d130e');
-          px(ctx, 9, 5 + by, 2, 2, '#1d130e');
-          px(ctx, 5, 5 + by, 1, 1, '#ffffff');
-          px(ctx, 9, 5 + by, 1, 1, '#ffffff');
+        if (faceStyle === 'happy') {
+          px(ctx, 5, 5 + by, 2, 1, '#1d130e');
+          px(ctx, 4, 6 + by, 1, 1, '#1d130e');
+          px(ctx, 7, 6 + by, 1, 1, '#1d130e');
+          px(ctx, 9, 5 + by, 2, 1, '#1d130e');
+          px(ctx, 8, 6 + by, 1, 1, '#1d130e');
+          px(ctx, 11, 6 + by, 1, 1, '#1d130e');
+          px(ctx, 4, 7 + by, 1, 1, 'rgba(235,105,120,0.65)');
+          px(ctx, 11, 7 + by, 1, 1, 'rgba(235,105,120,0.65)');
+          px(ctx, 6, 8 + by, 4, 1, '#b85c48');
+        } else if (faceStyle === 'wink') {
+          if (!blink) {
+            px(ctx, 5, 5 + by, 2, 2, '#1d130e');
+            px(ctx, 5, 5 + by, 1, 1, '#ffffff');
+          } else {
+            px(ctx, 5, 6 + by, 2, 1, '#3b2417');
+          }
+          // Playful winking eye
+          px(ctx, 9, 6 + by, 2, 1, '#1d130e');
+          px(ctx, 11, 5 + by, 1, 1, '#1d130e');
+          px(ctx, 4, 7 + by, 1, 1, 'rgba(235,105,120,0.55)');
+          px(ctx, 11, 7 + by, 1, 1, 'rgba(235,105,120,0.55)');
+          px(ctx, 7, 8 + by, 2, 1, '#c96752');
+        } else if (faceStyle === 'cool') {
+          // 16-bit dark pixel sunglasses with diagonal shine
+          px(ctx, 4, 5 + by, 4, 3, '#111827');
+          px(ctx, 8, 5 + by, 4, 3, '#111827');
+          px(ctx, 7, 5 + by, 2, 1, '#374151');
+          px(ctx, 5, 5 + by, 1, 1, '#93c5fd');
+          px(ctx, 9, 5 + by, 1, 1, '#93c5fd');
+          px(ctx, 7, 8 + by, 2, 1, '#b86852');
         } else {
-          px(ctx, 5, 6 + by, 2, 1, '#3b2417');
-          px(ctx, 9, 6 + by, 2, 1, '#3b2417');
-        }
-        // Subtle rosy cheeks
-        px(ctx, 4, 7 + by, 1, 1, 'rgba(230,110,110,0.45)');
-        px(ctx, 11, 7 + by, 1, 1, 'rgba(230,110,110,0.45)');
+          // Default 'smile' or 'glasses'
+          if (!blink) {
+            px(ctx, 5, 5 + by, 2, 2, '#1d130e');
+            px(ctx, 9, 5 + by, 2, 2, '#1d130e');
+            px(ctx, 5, 5 + by, 1, 1, '#ffffff');
+            px(ctx, 9, 5 + by, 1, 1, '#ffffff');
+          } else {
+            px(ctx, 5, 6 + by, 2, 1, '#3b2417');
+            px(ctx, 9, 6 + by, 2, 1, '#3b2417');
+          }
+          px(ctx, 4, 7 + by, 1, 1, 'rgba(230,110,110,0.45)');
+          px(ctx, 11, 7 + by, 1, 1, 'rgba(230,110,110,0.45)');
 
-        if (style.glasses) {
-          px(ctx, 4, 5 + by, 4, 3, 'rgba(92,225,230,0.35)');
-          px(ctx, 8, 5 + by, 4, 3, 'rgba(92,225,230,0.35)');
-          px(ctx, 7, 6 + by, 2, 1, '#2a2a2a');
-          px(ctx, 4, 5 + by, 1, 1, '#ffffff');
-          px(ctx, 9, 5 + by, 1, 1, '#ffffff');
-        }
-        if (style.beard) {
-          px(ctx, 4, 7 + by, 8, 3, style.beard);
-          px(ctx, 5, 9 + by, 6, 1, 'rgba(0,0,0,0.2)');
-        } else {
-          px(ctx, 7, 8 + by, 2, 1, '#c9785d');
+          if (faceStyle === 'glasses' || style.glasses) {
+            px(ctx, 4, 5 + by, 4, 3, 'rgba(92,225,230,0.38)');
+            px(ctx, 8, 5 + by, 4, 3, 'rgba(92,225,230,0.38)');
+            px(ctx, 7, 6 + by, 2, 1, '#2a2a2a');
+            px(ctx, 4, 5 + by, 1, 1, '#ffffff');
+            px(ctx, 9, 5 + by, 1, 1, '#ffffff');
+          }
+          if (style.beard) {
+            px(ctx, 4, 7 + by, 8, 3, style.beard);
+            px(ctx, 5, 9 + by, 6, 1, 'rgba(0,0,0,0.2)');
+          } else {
+            px(ctx, 7, 8 + by, 2, 1, '#c9785d');
+          }
         }
       } else if (dir === 'left') {
-        if (!blink) {
+        if (faceStyle === 'cool') {
+          px(ctx, 3, 5 + by, 4, 3, '#111827');
+          px(ctx, 4, 5 + by, 1, 1, '#93c5fd');
+        } else if (!blink && faceStyle !== 'happy') {
           px(ctx, 4, 5 + by, 2, 2, '#1d130e');
           px(ctx, 4, 5 + by, 1, 1, '#ffffff');
         } else {
           px(ctx, 4, 6 + by, 2, 1, '#3b2417');
         }
-        if (style.glasses) px(ctx, 3, 5 + by, 4, 3, 'rgba(92,225,230,0.4)');
+        if (faceStyle === 'glasses' || style.glasses) px(ctx, 3, 5 + by, 4, 3, 'rgba(92,225,230,0.4)');
         if (style.beard) px(ctx, 3, 7 + by, 5, 3, style.beard);
       } else if (dir === 'right') {
-        if (!blink) {
+        if (faceStyle === 'cool') {
+          px(ctx, 9, 5 + by, 4, 3, '#111827');
+          px(ctx, 10, 5 + by, 1, 1, '#93c5fd');
+        } else if (!blink && faceStyle !== 'happy') {
           px(ctx, 10, 5 + by, 2, 2, '#1d130e');
           px(ctx, 11, 5 + by, 1, 1, '#ffffff');
         } else {
           px(ctx, 10, 6 + by, 2, 1, '#3b2417');
         }
-        if (style.glasses) px(ctx, 9, 5 + by, 4, 3, 'rgba(92,225,230,0.4)');
+        if (faceStyle === 'glasses' || style.glasses) px(ctx, 9, 5 + by, 4, 3, 'rgba(92,225,230,0.4)');
         if (style.beard) px(ctx, 8, 7 + by, 5, 3, style.beard);
       }
 

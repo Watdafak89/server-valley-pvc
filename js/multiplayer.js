@@ -466,7 +466,7 @@ window.Multiplayer = (function () {
       const p = hooks.getLocalPlayer();
       if (!p) return;
       const now = Date.now();
-      const sig = `${p.x},${p.y},${p.dir},${p.frame},${p.completedUnits.length},${p.bytes},${p.zone},${p.name}`;
+      const sig = `${p.x},${p.y},${p.dir},${p.frame},${p.completedUnits.length},${p.bytes},${p.zone},${p.name},${p.hairStyle},${p.hair},${p.faceStyle},${p.skin},${p.shirt},${p.shirtStyle},${p.pants},${p.shoes},${p.hat}`;
       if (!force && sig === fbLastSentSig && now - fbLastSentAt < 5000) return;
       fbLastSentSig = sig;
       fbLastSentAt = now;
@@ -478,8 +478,15 @@ window.Multiplayer = (function () {
         y: p.y,
         dir: p.dir,
         frame: p.frame,
+        skin: p.skin,
+        hair: p.hair,
+        hairStyle: p.hairStyle,
+        faceStyle: p.faceStyle,
         shirt: p.shirt,
-        hat: p.hat,
+        shirtStyle: p.shirtStyle,
+        pants: p.pants,
+        shoes: p.shoes,
+        hat: p.hat || '',
         zone: p.zone,
         completedUnits: p.completedUnits || [],
         bestQuiz: p.bestQuiz || null,

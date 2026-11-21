@@ -11,8 +11,15 @@
     studentClass: 'ระดับ ปวช. สาขาเทคโนโลยีสารสนเทศ',
     collegeName: 'วิทยาลัยอาชีวศึกษา / วิทยาลัยเทคนิค',
     instructorName: 'อาจารย์ผู้สอนรายวิชาฯ',
+    skin: '#f6cfa6',
+    hairStyle: 'short',
+    hairColor: '#241712',
+    faceStyle: 'glasses',
     shirtColor: '#2a7b5f',
-    hatColor: '#c85a17'
+    shirtStyle: 'jacket',
+    pantsColor: '#2c4969',
+    shoesColor: '#5c3317',
+    hatColor: ''
   };
 
   // DOM References
@@ -93,10 +100,32 @@
     };
   }
 
+  function profileToStyle(prof) {
+    const p = { ...DEFAULT_PROFILE, ...(prof || {}) };
+    return {
+      skin: p.skin,
+      hair: p.hairColor,
+      hairStyle: p.hairStyle,
+      faceStyle: p.faceStyle,
+      glasses: p.faceStyle === 'glasses',
+      shirt: p.shirtColor,
+      shirtStyle: p.shirtStyle,
+      accent: '#f4f9f4',
+      pants: p.pantsColor,
+      shoes: p.shoesColor,
+      hat: p.hatColor || '',
+      hatTrim: '#ffd166',
+      backpack: true
+    };
+  }
+
+  function styleCacheKey(prefix, s) {
+    return [prefix, s.skin, s.hair, s.hairStyle, s.faceStyle, s.shirt, s.shirtStyle, s.pants, s.shoes, s.hat].join('_');
+  }
+
   function applyPlayerAppearance(prof) {
     if (!prof) return;
-    GD.PLAYER_STYLE.shirt = prof.shirtColor || DEFAULT_PROFILE.shirtColor;
-    GD.PLAYER_STYLE.hat = prof.hatColor || DEFAULT_PROFILE.hatColor;
+    Object.assign(GD.PLAYER_STYLE, profileToStyle(prof));
   }
 
   function refreshHudAvatar() {
@@ -105,7 +134,7 @@
     const avCtx = av.getContext('2d');
     avCtx.imageSmoothingEnabled = false;
     avCtx.clearRect(0, 0, 48, 48);
-    const key = 'player_' + GD.PLAYER_STYLE.shirt + '_' + GD.PLAYER_STYLE.hat;
+    const key = styleCacheKey('hud', GD.PLAYER_STYLE);
     avCtx.drawImage(Sprites.getPortrait(key, GD.PLAYER_STYLE), 0, 0, 48, 48);
   }
 
@@ -1618,8 +1647,16 @@
           draw: () => {
             const pStyle = {
               ...GD.PLAYER_STYLE,
+              skin: peer.skin || '#f6cfa6',
+              hair: peer.hair || '#241712',
+              hairStyle: peer.hairStyle || 'short',
+              faceStyle: peer.faceStyle || 'smile',
+              glasses: peer.faceStyle === 'glasses',
               shirt: peer.shirt || '#2b6cb0',
-              hat: peer.hat || '#1e40af'
+              shirtStyle: peer.shirtStyle || 'jacket',
+              pants: peer.pants || '#2c4969',
+              shoes: peer.shoes || '#5c3317',
+              hat: peer.hat || ''
             };
             Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
             // Cyan/Emerald Player Nameplate
@@ -1787,21 +1824,98 @@
     lastTime = ts;
     update(dt);
     render();
+    if (activeModalId === 'modal-customize') renderCustomizerPreview();
     requestAnimationFrame(loop);
   }
 
-  // ==================== STARTUP & EVENT WIRING ====================
+  // ==================== 16-BIT CHARACTER CUSTOMIZER & PROFILE SETUP ====================
   function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   }
 
-  // Title Screen Character & Profile Setup
+  const CUSTOM_OPTIONS = {
+    hairStyle: [
+      { val: 'short', label: 'ผมสั้นเรียบ' },
+      { val: 'spiky', label: 'ผมตั้งเท่' },
+      { val: 'bob', label: 'ผมบ๊อบน่ารัก' },
+      { val: 'long', label: 'ผมยาวสลวย' },
+      { val: 'ponytail', label: 'ผมหางม้า' },
+      { val: 'curly', label: 'ผมหยักศก' }
+    ],
+    hairColor: [
+      { val: '#241712', name: 'ดำเข้ม' },
+      { val: '#5a331c', name: 'น้ำตาลช็อกโกแลต' },
+      { val: '#a36a2c', name: 'น้ำตาลทอง' },
+      { val: '#e6b84c', name: 'บลอนด์ทอง' },
+      { val: '#9e2a2b', name: 'แดงเชอร์รี' },
+      { val: '#3b4cca', name: 'น้ำเงินอนิเมะ' }
+    ],
+    faceStyle: [
+      { val: 'smile', label: '😊 ยิ้มสดใส' },
+      { val: 'glasses', label: '🤓 แว่นเด็กไอที' },
+      { val: 'cool', label: '😎 แว่นกันแดดเท่' },
+      { val: 'wink', label: '😉 ขยิบตาขี้เล่น' },
+      { val: 'happy', label: '😄 ยิ้มตาหยี' }
+    ],
+    skin: [
+      { val: '#fde0c4', name: 'ขาวอมชมพู' },
+      { val: '#f6cfa6', name: 'ขาวเหลือง' },
+      { val: '#e3ae7c', name: 'ผิวสองสี' },
+      { val: '#c68642', name: 'ผิวแทน' },
+      { val: '#8d5524', name: 'ผิวเข้ม' }
+    ],
+    shirtStyle: [
+      { val: 'jacket', label: '🧥 แจ็กเก็ตไอที' },
+      { val: 'polo', label: '👔 เสื้อโปโล' },
+      { val: 'hoodie', label: '🎽 เสื้อฮู้ดดี้' }
+    ],
+    shirtColor: [
+      { val: '#2a7b5f', name: 'เขียวแอดมิน' },
+      { val: '#2b6cb0', name: 'น้ำเงิน Windows' },
+      { val: '#b83280', name: 'ชมพู' },
+      { val: '#c05621', name: 'ส้ม Ubuntu' },
+      { val: '#6b46c1', name: 'ม่วง' },
+      { val: '#2d3748', name: 'ดำเท่' },
+      { val: '#e2e8f0', name: 'ขาวนักศึกษา' },
+      { val: '#c53030', name: 'แดง' }
+    ],
+    pantsColor: [
+      { val: '#2c4969', name: 'ยีนส์เข้ม' },
+      { val: '#22272e', name: 'ดำสแล็ก' },
+      { val: '#8c6b43', name: 'น้ำตาลกากี' },
+      { val: '#1e3a5f', name: 'กรมท่า' },
+      { val: '#3b523b', name: 'เขียวทหาร' },
+      { val: '#64748b', name: 'เทา' }
+    ],
+    shoesColor: [
+      { val: '#5c3317', name: 'น้ำตาลหนัง' },
+      { val: '#1f2428', name: 'ดำผ้าใบ' },
+      { val: '#e2e8f0', name: 'ขาวสนีกเกอร์' },
+      { val: '#c83e37', name: 'แดงผ้าใบ' },
+      { val: '#2563eb', name: 'น้ำเงินสปอร์ต' },
+      { val: '#d97706', name: 'เหลืองบูท' }
+    ],
+    hatColor: [
+      { val: '', name: 'ไม่ใส่หมวก (โชว์ทรงผม)' },
+      { val: '#c85a17', name: 'ส้มอิฐ' },
+      { val: '#1e40af', name: 'น้ำเงินเข้ม' },
+      { val: '#6b46c1', name: 'ม่วง' },
+      { val: '#2d3748', name: 'ดำเท่' },
+      { val: '#b91c1c', name: 'แดง' }
+    ]
+  };
+
   const setupProfile = { ...DEFAULT_PROFILE };
   const inStudentName = document.getElementById('input-student-name');
   const inStudentClass = document.getElementById('input-student-class');
   const inCollegeName = document.getElementById('input-college-name');
   const inInstructorName = document.getElementById('input-instructor-name');
+
+  let custDraft = { ...DEFAULT_PROFILE };
+  const CUST_DIRS = ['down', 'left', 'up', 'right'];
+  let custDirIdx = 0;
+  let custWalk = true;
 
   function renderSetupAvatar() {
     const pv = document.getElementById('setup-avatar-preview');
@@ -1809,31 +1923,161 @@
     const pCtx = pv.getContext('2d');
     pCtx.imageSmoothingEnabled = false;
     pCtx.clearRect(0, 0, 84, 84);
-    const previewStyle = { ...GD.PLAYER_STYLE, shirt: setupProfile.shirtColor, hat: setupProfile.hatColor };
-    const key = 'preview_' + setupProfile.shirtColor + '_' + setupProfile.hatColor;
+    const previewStyle = profileToStyle(setupProfile);
+    const key = styleCacheKey('setup', previewStyle);
     pCtx.drawImage(Sprites.getPortrait(key, previewStyle), 0, 0, 84, 84);
   }
+
+  function renderCustomizerPreview() {
+    const pv = document.getElementById('cust-preview-canvas');
+    if (!pv) return;
+    const pCtx = pv.getContext('2d');
+    pCtx.imageSmoothingEnabled = false;
+    pCtx.clearRect(0, 0, pv.width, pv.height);
+    const frame = custWalk ? (Math.floor(tick / 12) % 4) : 0;
+    const dir = CUST_DIRS[custDirIdx];
+    Sprites.drawCharacter(pCtx, 32, 34, profileToStyle(custDraft), dir, frame, 6, tick);
+  }
+
+  function buildCustomizerUI() {
+    const col = document.getElementById('cust-options-col');
+    if (!col) return;
+    col.innerHTML = '';
+
+    const addPillGroup = (title, field, list) => {
+      const g = document.createElement('div');
+      g.className = 'cust-group';
+      g.innerHTML = `<div class="cust-group-title">${title}</div><div class="cust-row"></div>`;
+      const row = g.querySelector('.cust-row');
+      list.forEach((opt) => {
+        const b = document.createElement('button');
+        b.className = 'cust-pill' + (custDraft[field] === opt.val ? ' active' : '');
+        b.textContent = opt.label;
+        b.onclick = () => {
+          SoundFX.click();
+          custDraft[field] = opt.val;
+          if (field === 'hairStyle' && custDraft.hatColor) {
+            // Auto-remove hat when picking a hairstyle so player sees it clearly!
+            custDraft.hatColor = '';
+          }
+          buildCustomizerUI();
+        };
+        row.appendChild(b);
+      });
+      col.appendChild(g);
+    };
+
+    const addSwatchGroup = (title, field, list) => {
+      const g = document.createElement('div');
+      g.className = 'cust-group';
+      g.innerHTML = `<div class="cust-group-title">${title}</div><div class="cust-row"></div>`;
+      const row = g.querySelector('.cust-row');
+      list.forEach((opt) => {
+        const b = document.createElement('button');
+        b.className = 'cust-swatch' + (custDraft[field] === opt.val ? ' active' : '');
+        b.title = opt.name;
+        if (opt.val === '') {
+          b.style.background = '#fffdf8';
+          b.textContent = '✕';
+        } else {
+          b.style.background = opt.val;
+        }
+        b.onclick = () => {
+          SoundFX.click();
+          custDraft[field] = opt.val;
+          buildCustomizerUI();
+        };
+        row.appendChild(b);
+      });
+      col.appendChild(g);
+    };
+
+    addPillGroup('💇 ทรงผม (Hairstyle)', 'hairStyle', CUSTOM_OPTIONS.hairStyle);
+    addSwatchGroup('🎨 สีผม (Hair Color)', 'hairColor', CUSTOM_OPTIONS.hairColor);
+    addPillGroup('😊 ใบหน้าและแว่นตา (Face)', 'faceStyle', CUSTOM_OPTIONS.faceStyle);
+    addSwatchGroup('🧑 สีผิว (Skin Tone)', 'skin', CUSTOM_OPTIONS.skin);
+    addPillGroup('👕 รูปแบบเสื้อ (Shirt Style)', 'shirtStyle', CUSTOM_OPTIONS.shirtStyle);
+    addSwatchGroup('🎨 สีเสื้อ (Shirt Color)', 'shirtColor', CUSTOM_OPTIONS.shirtColor);
+    addSwatchGroup('👖 สีกางเกง (Pants Color)', 'pantsColor', CUSTOM_OPTIONS.pantsColor);
+    addSwatchGroup('👟 สีรองเท้า (Shoes Color)', 'shoesColor', CUSTOM_OPTIONS.shoesColor);
+    addSwatchGroup('🧢 หมวก (Hat — กด ✕ เพื่อไม่ใส่หมวก)', 'hatColor', CUSTOM_OPTIONS.hatColor);
+  }
+
+  function randomizeProfile(target) {
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)].val;
+    target.hairStyle = pick(CUSTOM_OPTIONS.hairStyle);
+    target.hairColor = pick(CUSTOM_OPTIONS.hairColor);
+    target.faceStyle = pick(CUSTOM_OPTIONS.faceStyle);
+    target.skin = pick(CUSTOM_OPTIONS.skin);
+    target.shirtStyle = pick(CUSTOM_OPTIONS.shirtStyle);
+    target.shirtColor = pick(CUSTOM_OPTIONS.shirtColor);
+    target.pantsColor = pick(CUSTOM_OPTIONS.pantsColor);
+    target.shoesColor = pick(CUSTOM_OPTIONS.shoesColor);
+    target.hatColor = Math.random() < 0.65 ? '' : pick(CUSTOM_OPTIONS.hatColor);
+  }
+
+  function openCustomizerModal() {
+    custDraft = state.started ? { ...DEFAULT_PROFILE, ...state.profile } : { ...DEFAULT_PROFILE, ...setupProfile };
+    custDirIdx = 0;
+    openModal('modal-customize');
+    buildCustomizerUI();
+    renderCustomizerPreview();
+  }
+
+  document.getElementById('btn-cust-rot-left').onclick = () => {
+    SoundFX.click();
+    custDirIdx = (custDirIdx + 3) % 4;
+  };
+  document.getElementById('btn-cust-rot-right').onclick = () => {
+    SoundFX.click();
+    custDirIdx = (custDirIdx + 1) % 4;
+  };
+  document.getElementById('btn-cust-walk-toggle').onclick = () => {
+    SoundFX.click();
+    custWalk = !custWalk;
+    document.getElementById('btn-cust-walk-toggle').textContent = custWalk ? '🚶 เดิน' : '🧍 ยืน';
+  };
+  document.getElementById('btn-cust-random').onclick = () => {
+    SoundFX.pickup();
+    randomizeProfile(custDraft);
+    buildCustomizerUI();
+  };
+  document.getElementById('btn-cust-save').onclick = () => {
+    SoundFX.questComplete();
+    Object.assign(setupProfile, custDraft);
+    if (state.started) {
+      Object.assign(state.profile, custDraft);
+      applyPlayerAppearance(state.profile);
+      refreshHudAvatar();
+      saveGame();
+      showToast('✨ บันทึกลุคตัวละครใหม่เรียบร้อยแล้ว!', true);
+    } else {
+      renderSetupAvatar();
+      showToast('✨ แต่งตัวละครเรียบร้อย! กดเริ่มผจญภัยได้เลย', true);
+    }
+    closeAllModals();
+  };
+
+  document.getElementById('btn-open-customizer-title').onclick = openCustomizerModal;
+  document.getElementById('btn-setup-avatar-click').onclick = openCustomizerModal;
+  document.getElementById('btn-random-look-title').onclick = () => {
+    SoundFX.pickup();
+    randomizeProfile(setupProfile);
+    renderSetupAvatar();
+  };
+  document.getElementById('hud-avatar').onclick = openCustomizerModal;
+  document.getElementById('btn-open-customizer-help').onclick = openCustomizerModal;
 
   function readSetupInputsInto(targetProfile) {
     if (inStudentName && inStudentName.value.trim()) targetProfile.studentName = inStudentName.value.trim();
     if (inStudentClass && inStudentClass.value.trim()) targetProfile.studentClass = inStudentClass.value.trim();
     if (inCollegeName && inCollegeName.value.trim()) targetProfile.collegeName = inCollegeName.value.trim();
     if (inInstructorName && inInstructorName.value.trim()) targetProfile.instructorName = inInstructorName.value.trim();
-    targetProfile.shirtColor = setupProfile.shirtColor;
-    targetProfile.hatColor = setupProfile.hatColor;
+    const appearKeys = ['skin', 'hairStyle', 'hairColor', 'faceStyle', 'shirtColor', 'shirtStyle', 'pantsColor', 'shoesColor', 'hatColor'];
+    appearKeys.forEach((k) => {
+      if (setupProfile[k] !== undefined) targetProfile[k] = setupProfile[k];
+    });
   }
-
-  document.querySelectorAll('.swatch').forEach((sw) => {
-    sw.onclick = () => {
-      const part = sw.dataset.part;
-      const color = sw.dataset.color;
-      document.querySelectorAll(`.swatch[data-part="${part}"]`).forEach((b) => b.classList.remove('active'));
-      sw.classList.add('active');
-      if (part === 'shirt') setupProfile.shirtColor = color;
-      if (part === 'hat') setupProfile.hatColor = color;
-      renderSetupAvatar();
-    };
-  });
 
   function startGameplay(loadedState = null) {
     SoundFX.init();
@@ -1917,6 +2161,8 @@
       const slotIdx = HOTBAR_KEYS.indexOf(e.key);
       if (e.code === 'KeyL') {
         openMultiplayerModal('connect');
+      } else if (e.code === 'KeyC') {
+        openCustomizerModal();
       } else if (slotIdx !== -1) {
         state.selectedSlot = slotIdx;
         SoundFX.click();
@@ -2099,8 +2345,15 @@
         y: Math.round(state.player.y),
         dir: state.player.dir,
         frame: state.player.frame,
+        skin: GD.PLAYER_STYLE.skin,
+        hair: GD.PLAYER_STYLE.hair,
+        hairStyle: GD.PLAYER_STYLE.hairStyle,
+        faceStyle: GD.PLAYER_STYLE.faceStyle,
         shirt: GD.PLAYER_STYLE.shirt,
-        hat: GD.PLAYER_STYLE.hat,
+        shirtStyle: GD.PLAYER_STYLE.shirtStyle,
+        pants: GD.PLAYER_STYLE.pants,
+        shoes: GD.PLAYER_STYLE.shoes,
+        hat: GD.PLAYER_STYLE.hat || '',
         zone: getZoneName(Math.floor((state.player.x + 16) / TILE), Math.floor((state.player.y + 16) / TILE)),
         completedUnits: state.completedUnits,
         bestQuiz: state.bestMasterQuiz,
