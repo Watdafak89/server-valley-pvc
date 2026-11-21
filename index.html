@@ -300,12 +300,36 @@
         </div>
         <div class="modal-body-scroll help-body">
           <div class="help-section">
-            <h3>🎮 การควบคุม</h3>
+            <h3>🎮 ตั้งค่าการควบคุมการเคลื่อนไหว (Movement Controls)</h3>
+            <div class="ctrl-settings-box">
+              <div class="ctrl-mode-row" id="ctrl-mode-group">
+                <button class="cust-pill active" data-ctrl-mode="both">⌨️ WASD + ลูกศร (แนะนำ)</button>
+                <button class="cust-pill" data-ctrl-mode="wasd">🎮 ใช้เฉพาะ W A S D</button>
+                <button class="cust-pill" data-ctrl-mode="arrows">⬆️ ใช้เฉพาะลูกศร (↑↓←→)</button>
+              </div>
+              <div class="ctrl-keycap-row">
+                <div class="ctrl-keycap-cluster" aria-label="WASD Key Tester">
+                  <div class="keycap-row-top">
+                    <span class="keycap" id="kc-w">W<small>ขึ้น</small></span>
+                  </div>
+                  <div class="keycap-row-bot">
+                    <span class="keycap" id="kc-a">A<small>ซ้าย</small></span>
+                    <span class="keycap" id="kc-s">S<small>ลง</small></span>
+                    <span class="keycap" id="kc-d">D<small>ขวา</small></span>
+                  </div>
+                </div>
+                <div class="ctrl-hint-note">
+                  <div><strong>รองรับคีย์บอร์ดทั้งภาษาอังกฤษและภาษาไทย (ไ / ฟ / ห / ก)</strong></div>
+                  <div id="ctrl-mode-status" class="ctrl-status-text">โหมดปัจจุบัน: เดินได้ทั้ง W A S D และปุ่มลูกศร (กด Shift ค้างเพื่อวิ่งเร็ว)</div>
+                  <div style="font-size:12px;color:#6e4b2c;margin-top:2px;">ลองกดปุ่ม W A S D ตอนนี้เพื่อทดสอบการตอบสนองได้เลย!</div>
+                </div>
+              </div>
+            </div>
             <ul>
               <li><strong>W A S D</strong> หรือ <strong>ปุ่มลูกศร</strong> — เดินบังคับตัวละคร | กด <strong>Shift</strong> ค้างเพื่อวิ่งเร็ว</li>
               <li><strong>E</strong> หรือ <strong>Spacebar</strong> — คุยกับ NPC / ใช้งานตู้เซิร์ฟเวอร์ / เก็บกล่องไอเท็ม / พักผ่อนที่เตียง</li>
               <li><strong>1–9, 0, -, =</strong> (หรือคลิกช่อง Hotbar 12 ช่อง) — เลือกไอเท็ม | <strong>F</strong> — ใช้ไอเท็มที่ถืออยู่</li>
-              <li><strong>B</strong> — คลังเนื้อหา 18 สัปดาห์ | <strong>Q</strong> — เควส 18 สัปดาห์ | <strong>M</strong> — แผนที่ &amp; วาร์ปด่วน | <strong>P</strong> — ร้านค้า</li>
+              <li><strong>B</strong> — คลังเนื้อหา 18 สัปดาห์ | <strong>Q</strong> — เควส 18 สัปดาห์ | <strong>M</strong> — แผนที่ &amp; วาร์ปด่วน | <strong>P</strong> — ร้านค้า | <strong>C</strong> — แต่งตัวละคร</li>
             </ul>
           </div>
           <div class="help-section">
