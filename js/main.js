@@ -186,7 +186,7 @@
     const av = document.getElementById('hud-avatar');
     if (!av) return;
     const avCtx = av.getContext('2d');
-    avCtx.imageSmoothingEnabled = false;
+    avCtx.imageSmoothingEnabled = true;
     avCtx.clearRect(0, 0, 48, 48);
     const key = styleCacheKey('hud', GD.PLAYER_STYLE);
     avCtx.drawImage(Sprites.getPortrait(key, GD.PLAYER_STYLE), 0, 0, 48, 48);
@@ -1508,7 +1508,7 @@
   function render() {
     const vw = canvas.width;
     const vh = canvas.height;
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = true;
     ctx.clearRect(0, 0, vw, vh);
 
     // Camera zoom (cozy Stardew scale)
@@ -1819,65 +1819,146 @@
       }
     }
 
-    // 6. Particles, Butterflies, Blossom Petals & Fireflies
+    // 6. 2.5D Volumetric Particles, Floating Butterflies (with 3D ground shadow!), Petals & Glowing Fireflies
     particles.forEach((p) => {
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y + 3, p.size * 0.55, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = p.color;
-      ctx.fillRect(Math.floor(p.x), Math.floor(p.y), p.size, p.size);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * 0.65, 0, Math.PI * 2);
+      ctx.fill();
     });
 
-    // Daytime 16-bit fluttering butterflies
+    // Daytime 2.5D fluttering butterflies with height shadow on ground below
     if (nightFactor < 0.35) {
       butterflies.forEach((b) => {
         if (b.x < camX - 20 || b.x > camX + viewW + 20 || b.y < camY - 20 || b.y > camY + viewH + 20) return;
-        const wing = Math.sin(b.phase) > 0 ? 3 : 1;
+        const wing = Math.sin(b.phase) > 0 ? 3.2 : 1.3;
         const bx = Math.floor(b.x);
         const by = Math.floor(b.y);
+        // 2.5D Ground shadow 10px below floating butterfly
+        ctx.fillStyle = 'rgba(15, 28, 12, 0.22)';
+        ctx.beginPath();
+        ctx.ellipse(bx, by + 10, 2.5, 1.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Butterfly wings
         ctx.fillStyle = b.color;
-        ctx.fillRect(bx - wing, by, wing, 3);
-        ctx.fillRect(bx + 1, by, wing, 3);
+        ctx.beginPath();
+        ctx.ellipse(bx - wing * 0.6, by, wing, 2.0, -0.2, 0, Math.PI * 2);
+        ctx.ellipse(bx + wing * 0.6, by, wing, 2.0, 0.2, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = '#2b1b12';
-        ctx.fillRect(bx, by, 1, 3);
+        ctx.fillRect(bx - 0.5, by - 1.5, 1.2, 3);
       });
     }
 
-    // Gentle drifting cherry blossom petals
+    // 2.5D Drifting cherry blossom petals with ground shadow
     petals.forEach((pt) => {
       if (pt.x < camX - 20 || pt.x > camX + viewW + 20 || pt.y < camY - 20 || pt.y > camY + viewH + 20) return;
-      ctx.fillStyle = nightFactor > 0.3 ? 'rgba(255, 196, 220, 0.45)' : 'rgba(255, 178, 206, 0.85)';
-      ctx.fillRect(Math.floor(pt.x), Math.floor(pt.y), 3, 2);
+      ctx.fillStyle = 'rgba(15, 25, 12, 0.16)';
+      ctx.fillRect(Math.floor(pt.x + 2), Math.floor(pt.y + 7), 2, 1);
+      ctx.fillStyle = nightFactor > 0.3 ? 'rgba(255, 196, 220, 0.52)' : 'rgba(255, 178, 206, 0.90)';
+      ctx.beginPath();
+      ctx.ellipse(pt.x, pt.y, 2.2, 1.3, pt.phase * 0.5, 0, Math.PI * 2);
+      ctx.fill();
     });
 
+    // 2.5D Glowing Fireflies / Sun Motes with radial bloom
     fireflies.forEach((f) => {
       if (f.x < camX - 20 || f.x > camX + viewW + 20 || f.y < camY - 20 || f.y > camY + viewH + 20) return;
       const a = 0.25 + 0.55 * Math.abs(Math.sin(f.phase));
-      ctx.fillStyle = nightFactor > 0.15 ? `rgba(210, 255, 130, ${a})` : `rgba(255, 250, 200, ${a * 0.45})`;
-      ctx.fillRect(Math.floor(f.x), Math.floor(f.y), 3, 3);
+      const g = ctx.createRadialGradient(f.x, f.y, 0.5, f.x, f.y, 6);
+      if (nightFactor > 0.15) {
+        g.addColorStop(0, `rgba(236, 252, 203, ${a})`);
+        g.addColorStop(0.4, `rgba(163, 230, 53, ${a * 0.55})`);
+        g.addColorStop(1, 'rgba(163, 230, 53, 0)');
+      } else {
+        g.addColorStop(0, `rgba(255, 253, 230, ${a * 0.55})`);
+        g.addColorStop(1, 'rgba(255, 253, 230, 0)');
+      }
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, 6, 0, Math.PI * 2);
+      ctx.fill();
     });
 
     ctx.restore();
 
-    // 7. Cozy Golden Hour / Evening Atmospheric Lighting Tint
+    // 7. 2.5D HD-2D Atmospheric Post-Processing: Diagonal Sunbeam God-Rays, Horizon Depth & Tilt-Shift Vignette
+    ctx.save();
+    if (nightFactor < 0.45) {
+      // Diagonal warm sunlight shafts streaming from upper-left across the 2.5D diorama
+      const sunAlpha = (1 - nightFactor * 2) * 0.075;
+      ctx.fillStyle = `rgba(255, 247, 194, ${sunAlpha})`;
+      const rayShift = Math.sin(tick / 90) * 18;
+      for (let r = 0; r < 3; r++) {
+        const rx = vw * (0.08 + r * 0.30) + rayShift;
+        const rw = vw * 0.11;
+        ctx.beginPath();
+        ctx.moveTo(rx, 0);
+        ctx.lineTo(rx + rw, 0);
+        ctx.lineTo(rx + rw + vh * 0.48, vh);
+        ctx.lineTo(rx + vh * 0.48, vh);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    // Golden Hour / Evening / Night Atmospheric Tint
     if (state.minutes >= 16 * 60 + 30 && state.minutes < 18 * 60 + 30) {
       const k = Math.sin(((state.minutes - 16.5 * 60) / 120) * Math.PI) * 0.18;
       ctx.fillStyle = `rgba(255, 145, 55, ${k})`;
       ctx.fillRect(0, 0, vw, vh);
     } else if (state.minutes >= 18 * 60 + 30) {
       const k = Math.min(0.36, ((state.minutes - 18.5 * 60) / 180) * 0.36);
-      ctx.fillStyle = `rgba(18, 28, 64, ${k})`;
+      ctx.fillStyle = `rgba(14, 24, 58, ${k})`;
       ctx.fillRect(0, 0, vw, vh);
     }
+
+    // 2.5D Diorama Tilt-Shift Depth Gradient (top atmospheric sky-light & bottom shadow vignette)
+    const topHaze = ctx.createLinearGradient(0, 0, 0, Math.min(110, vh * 0.16));
+    topHaze.addColorStop(0, nightFactor > 0.3 ? 'rgba(15, 23, 42, 0.32)' : 'rgba(254, 249, 195, 0.18)');
+    topHaze.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = topHaze;
+    ctx.fillRect(0, 0, vw, Math.min(110, vh * 0.16));
+
+    const botVig = ctx.createLinearGradient(0, vh - Math.min(100, vh * 0.15), 0, vh);
+    botVig.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    botVig.addColorStop(1, 'rgba(12, 18, 10, 0.24)');
+    ctx.fillStyle = botVig;
+    ctx.fillRect(0, vh - Math.min(100, vh * 0.15), vw, Math.min(100, vh * 0.15));
+    ctx.restore();
   }
 
   function drawFloatingMarker(ctx, cx, cy, symbol, color) {
     const dy = Math.sin(tick / 10) * 4;
+    // 2.5D 3D Floating Quest Badge with glow & drop shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.26)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 12, 6, 2.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(cx, cy - 2 + dy);
     ctx.fillStyle = '#381e0c';
-    ctx.fillRect(cx - 9, cy - 11 + dy, 18, 18);
+    ctx.beginPath();
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = color;
-    ctx.fillRect(cx - 7, cy - 9 + dy, 14, 14);
+    ctx.beginPath();
+    ctx.arc(0, -0.5, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath();
+    ctx.arc(-2.5, -3, 2.5, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = '#241104';
     ctx.font = 'bold 12px Kanit, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(symbol, cx, cy + 2 + dy);
+    ctx.fillText(symbol, 0, 4);
+    ctx.restore();
   }
 
   function loop(ts) {
@@ -1983,7 +2064,7 @@
     const pv = document.getElementById('setup-avatar-preview');
     if (!pv) return;
     const pCtx = pv.getContext('2d');
-    pCtx.imageSmoothingEnabled = false;
+    pCtx.imageSmoothingEnabled = true;
     pCtx.clearRect(0, 0, 84, 84);
     const previewStyle = profileToStyle(setupProfile);
     const key = styleCacheKey('setup', previewStyle);
@@ -1994,11 +2075,51 @@
     const pv = document.getElementById('cust-preview-canvas');
     if (!pv) return;
     const pCtx = pv.getContext('2d');
-    pCtx.imageSmoothingEnabled = false;
     pCtx.clearRect(0, 0, pv.width, pv.height);
+
+    // 2.5D Diorama Pedestal Turntable & Spotlight under Character
+    pCtx.save();
+    // Soft spotlight cone from above
+    const spot = pCtx.createLinearGradient(80, 0, 80, 175);
+    spot.addColorStop(0, 'rgba(255, 253, 220, 0.35)');
+    spot.addColorStop(1, 'rgba(255, 253, 220, 0)');
+    pCtx.fillStyle = spot;
+    pCtx.beginPath();
+    pCtx.moveTo(45, 0);
+    pCtx.lineTo(115, 0);
+    pCtx.lineTo(145, 175);
+    pCtx.lineTo(15, 175);
+    pCtx.closePath();
+    pCtx.fill();
+
+    // 3D Turntable Podium Base (extruded wood & gold rim)
+    pCtx.fillStyle = 'rgba(15, 25, 12, 0.35)';
+    pCtx.beginPath();
+    pCtx.ellipse(80, 174, 54, 13, 0, 0, Math.PI * 2);
+    pCtx.fill();
+
+    pCtx.fillStyle = '#5c3114';
+    pCtx.strokeStyle = '#261409';
+    pCtx.lineWidth = 2;
+    pCtx.beginPath();
+    pCtx.ellipse(80, 170, 50, 11, 0, 0, Math.PI * 2);
+    pCtx.fill();
+    pCtx.stroke();
+
+    const podGrad = pCtx.createRadialGradient(72, 162, 4, 80, 165, 48);
+    podGrad.addColorStop(0, '#fde68a');
+    podGrad.addColorStop(0.65, '#d99b52');
+    podGrad.addColorStop(1, '#8c5022');
+    pCtx.fillStyle = podGrad;
+    pCtx.beginPath();
+    pCtx.ellipse(80, 165, 50, 11, 0, 0, Math.PI * 2);
+    pCtx.fill();
+    pCtx.stroke();
+    pCtx.restore();
+
     const frame = custWalk ? (Math.floor(tick / 12) % 4) : 0;
     const dir = CUST_DIRS[custDirIdx];
-    Sprites.drawCharacter(pCtx, 20, 14, profileToStyle(custDraft), dir, frame, 6, tick);
+    Sprites.drawCharacter(pCtx, 20, 10, profileToStyle(custDraft), dir, frame, 6, tick);
   }
 
   function buildCustomizerUI() {
