@@ -75,9 +75,9 @@
     <!-- Top-Left HUD: Player & Active Quest Tracker -->
     <div id="hud-top-left" class="hud-layer hidden">
       <div class="wood-panel mini-profile">
-        <canvas id="hud-avatar" width="48" height="48" title="คลิกเพื่อปรับแต่งตัวละคร (C)" style="cursor:pointer;"></canvas>
+        <canvas id="hud-avatar" width="48" height="48" title="คลิกเพื่อปรับแต่งตัวละครและแก้ไขชื่อ (C)" style="cursor:pointer;"></canvas>
         <div class="profile-meta">
-          <div id="hud-player-name" class="profile-name">นักศึกษาฝึกงาน ปวช.</div>
+          <div id="hud-player-name" class="profile-name" title="คลิกเพื่อแก้ไขชื่อและแต่งตัวละคร (C)" style="cursor:pointer;">นักศึกษาฝึกงาน ปวช. ✏️</div>
           <div class="profile-rank" id="hud-rank">Lv.1 ผู้ช่วยแอดมินมือใหม่</div>
           <div class="uptime-bar-wrap" title="ความคืบหน้าการฟื้นฟูหมู่บ้าน">
             <div class="uptime-label">
@@ -357,12 +357,12 @@
         </div>
       </div>
 
-      <!-- 16-Bit Character Customizer Modal (Hair, Face, Skin, Shirt, Pants, Shoes, Hat) -->
+      <!-- 2.5D Character Customizer & Name Editor Modal -->
       <div id="modal-customize" class="modal-window wood-panel large-modal hidden">
         <div class="modal-header">
           <div>
-            <h2>🎨 ห้องแต่งตัวละคร 16-Bit (Character Creator)</h2>
-            <p class="modal-sub">ปรับแต่ง ทรงผม สีผม ใบหน้า สีผิว เสื้อ กางเกง รองเท้า และหมวก — เห็นได้ทั้งในเกมและห้องเพื่อน 40–100 คน!</p>
+            <h2>🎨 ห้องแต่งตัวละคร 2.5D &amp; แก้ไขชื่อ (Character &amp; Profile Creator)</h2>
+            <p class="modal-sub">แก้ไขชื่อ-นามสกุล ระดับชั้น และปรับแต่งทรงผม ใบหน้า สีผิว ชุดแต่งกาย กางเกง รองเท้า หมวก/หูฟัง — ซิงค์สดในห้อง 40–100 คน!</p>
           </div>
           <button class="close-btn" data-close="modal-customize">✕</button>
         </div>
@@ -377,7 +377,7 @@
               <button id="btn-cust-rot-right" class="wood-btn small-btn" title="หมุนขวา">หมุน ▶</button>
             </div>
             <button id="btn-cust-random" class="wood-btn" style="width:100%;">🎲 สุ่มชุดและทรงผม</button>
-            <button id="btn-cust-save" class="wood-btn primary-btn" style="width:100%;">✅ บันทึกลุคนี้เลย!</button>
+            <button id="btn-cust-save" class="wood-btn primary-btn" style="width:100%;">✅ บันทึกชื่อ &amp; ลุคนี้เลย!</button>
           </div>
           <div id="cust-options-col" class="customizer-options-col"></div>
         </div>
