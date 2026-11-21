@@ -122,6 +122,7 @@
 
       <div class="quick-menu-bar">
         <button id="btn-multiplayer" class="hud-action-btn" title="เล่นกับเพื่อน / อันดับ / หน้าจอครู (L)">👥<span id="mp-btn-label">เพื่อน/ครู</span></button>
+        <button id="btn-teacher-admin" class="hud-action-btn" title="โหมดแอดมินสำหรับคุณครู (T)">👑<span>แอดมินครู</span></button>
         <button id="btn-codex" class="hud-action-btn" title="คลังเนื้อหา ปวช. (B)">📚<span>คลังเนื้อหา</span></button>
         <button id="btn-quests" class="hud-action-btn" title="สมุดเควส (Q)">📜<span>เควส</span></button>
         <button id="btn-map" class="hud-action-btn" title="แผนที่หมู่บ้าน (M)">🗺️<span>แผนที่</span></button>
@@ -171,6 +172,16 @@
     <div id="hud-hotbar" class="hud-layer hidden">
       <div id="selected-item-banner" class="selected-item-banner">เลือกไอเท็มด้วยปุ่ม 1-9 • กด F เพื่อใช้</div>
       <div class="hotbar-frame wood-panel" id="hotbar-slots"></div>
+    </div>
+
+    <!-- Floating Teacher Classroom Broadcast Megaphone Banner -->
+    <div id="teacher-announce-banner" class="teacher-announce-banner hidden">
+      <div class="announce-icon">📢</div>
+      <div class="announce-content">
+        <div id="announce-sender" class="announce-sender">👑 ประกาศจากคุณครูผู้สอน</div>
+        <div id="announce-text" class="announce-text"></div>
+      </div>
+      <button id="btn-announce-close" class="announce-close-btn" title="ปิดประกาศ">✕</button>
     </div>
 
     <!-- Floating Toast Notifications -->
@@ -384,7 +395,7 @@
         <div class="mp-tabs">
           <button class="mp-tab-btn active" data-mptab="connect">🌐 เชื่อมต่อห้อง (ออนไลน์ / LAN)</button>
           <button class="mp-tab-btn" data-mptab="leaderboard">🏆 ตารางจัดอันดับ (Leaderboard)</button>
-          <button class="mp-tab-btn" data-mptab="teacher">👩‍🏫 หน้าจอครูผู้สอน (Teacher Dashboard)</button>
+          <button class="mp-tab-btn" data-mptab="teacher">👑 โหมดแอดมินครู &amp; ติดตามห้องเรียน</button>
         </div>
         <div class="modal-body-scroll">
           <!-- Tab 1: Connect -->
@@ -468,15 +479,98 @@
             <div id="mp-leaderboard-wrap"></div>
           </div>
 
-          <!-- Tab 3: Teacher Dashboard -->
+          <!-- Tab 3: Teacher Dashboard & Admin Mode -->
           <div id="mp-pane-teacher" class="mp-pane hidden">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
               <div>
-                <strong>👩‍🏫 หน้าจอติดตามความก้าวหน้าสำหรับครูผู้สอน (Teacher Dashboard)</strong>
-                <div style="font-size:12.5px;color:#6e4526;">เห็นตำแหน่งโซน สัปดาห์ที่ผ่าน และคะแนน Master Quiz ของนักเรียนทุกคนในห้องแบบสด ๆ</div>
+                <strong>👑 ศูนย์บัญชาการแอดมินสำหรับคุณครู &amp; ติดตามความก้าวหน้าทั้งห้อง (Teacher Admin Mode)</strong>
+                <div style="font-size:12.5px;color:#6e4526;">ควบคุมห้องเรียนแบบเรียลไทม์ ส่งประกาศด่วน เรียกตัวนักเรียน สั่งเปิดแล็บ/จัดสอบพร้อมกัน และดูคะแนนสด</div>
               </div>
               <button id="btn-export-csv" class="wood-btn primary-btn">📥 Export รายงานคะแนน (CSV สำหรับ Excel)</button>
             </div>
+
+            <!-- Teacher Admin Authentication / PIN Gate -->
+            <div id="teacher-admin-lock-box" class="teacher-admin-gate">
+              <div class="admin-gate-left">
+                <span class="admin-crown-icon">👑</span>
+                <div>
+                  <strong>ปลดล็อกโหมดแอดมินสำหรับคุณครู (Teacher Admin Console)</strong>
+                  <div style="font-size:12px;color:#6e4526;">ใส่รหัส PIN คุณครูเพื่อเปิดระบบควบคุมห้องเรียนและเครื่องมือสาธิตการสอน (รหัสเริ่มต้น: <code>1234</code>)</div>
+                </div>
+              </div>
+              <div class="admin-gate-right">
+                <input id="input-teacher-pin" type="password" class="pixel-input" placeholder="รหัส PIN ครู (1234)" maxlength="16" style="width:150px;" />
+                <button id="btn-unlock-teacher-admin" class="wood-btn primary-btn">🔓 เปิดโหมดแอดมินครู</button>
+              </div>
+            </div>
+
+            <!-- Unlocked Teacher Admin Control Center -->
+            <div id="teacher-admin-panel" class="teacher-admin-panel hidden">
+              <div class="admin-active-header">
+                <div>
+                  <span class="admin-badge-live">👑 โหมดแอดมินครูเปิดทำงานอยู่</span>
+                  <span style="font-size:12px;color:#78350f;margin-left:6px;">ตัวละครของคุณครูมีมงกุฎทอง 👑 และป้าย <code>[👨‍🏫 ครูผู้สอน]</code> แสดงให้นักเรียนทั้งห้องเห็น</span>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <button id="btn-change-teacher-pin" class="wood-btn small-btn">🔑 เปลี่ยนรหัส PIN</button>
+                  <button id="btn-lock-teacher-admin" class="wood-btn small-btn danger-btn">🔒 ปิดโหมดแอดมิน</button>
+                </div>
+              </div>
+
+              <!-- 1. Live Megaphone Broadcast to All Students -->
+              <div class="admin-subcard">
+                <h4>📢 1. ประกาศแจ้งเตือนขึ้นหน้าจอนักเรียนทั้งห้อง (Classroom Megaphone)</h4>
+                <div class="admin-broadcast-row">
+                  <input id="admin-announce-input" type="text" class="pixel-input" placeholder="พิมพ์ข้อความประกาศถึงนักเรียนทั้งห้อง เช่น วันนี้เรียนสัปดาห์ที่ 14 ให้ทุกคนเปิดแล็บ..." maxlength="140" />
+                  <button id="btn-admin-announce" class="wood-btn primary-btn">📢 ส่งประกาศขึ้นจอทั้งห้อง</button>
+                </div>
+                <div class="admin-preset-row">
+                  <button class="cust-pill admin-preset-msg" data-msg="📌 นักเรียนทุกคนมารวมตัวกันที่ลานน้ำพุกลางหมู่บ้านครับ/ค่ะ!">📌 เรียกรวมพลลานน้ำพุ</button>
+                  <button class="cust-pill admin-preset-msg" data-msg="🖥️ ให้ทุกคนตั้งใจทำแล็บปฏิบัติการของสัปดาห์ที่ครูกำลังสอนนะครับ/คะ">🖥️ เริ่มทำแล็บพร้อมกัน</button>
+                  <button class="cust-pill admin-preset-msg" data-msg="📝 ได้เวลาทำแบบทดสอบรวม Master Quiz 18 ข้อแล้ว ขอให้ทุกคนโชคดี!">📝 แจ้งเริ่มสอบ Master Quiz</button>
+                  <button class="cust-pill admin-preset-msg" data-msg="🎓 ใครครบ 18 สัปดาห์แล้ว อย่าลืมกดปุ่ม 🎓 เพื่อบันทึกเกียรติบัตร PDF ส่งครู!">🎓 แจ้งส่งเกียรติบัตร</button>
+                </div>
+              </div>
+
+              <!-- 2. Real-time Classroom Remote Commands (Warp, Summon, Force Open Lab / Quiz, Class Bonus) -->
+              <div class="admin-subcard">
+                <h4>🎛️ 2. คำสั่งควบคุมห้องเรียนแบบเรียลไทม์ (ส่งผลกับนักเรียนทุกคนในห้องทันที)</h4>
+                <div class="admin-unit-bar">
+                  <label for="admin-unit-select"><strong>เลือกสัปดาห์เป้าหมาย:</strong></label>
+                  <select id="admin-unit-select" class="pixel-input" style="max-width:340px;"></select>
+                  <button id="btn-admin-warp-class" class="wood-btn win-btn small-btn">📍 วาร์ปทั้งห้องไปสัปดาห์นี้</button>
+                  <button id="btn-admin-open-lab-class" class="wood-btn primary-btn small-btn">🖥️ สั่งเปิดแล็บสัปดาห์นี้บนจอนักเรียนทุกคน</button>
+                  <button id="btn-admin-open-codex-class" class="wood-btn small-btn">📖 สั่งเปิดคู่มือสัปดาห์นี้ทั้งห้อง</button>
+                </div>
+                <div class="admin-cmd-grid">
+                  <button id="btn-admin-summon-all" class="wood-btn win-btn">🧲 เรียกนักเรียนทั้งห้องมาหาครู (Summon All)</button>
+                  <button id="btn-admin-start-quiz-all" class="wood-btn primary-btn">📝 สั่งเริ่มสอบ Master Quiz 18 ข้อ พร้อมกันทั้งห้อง!</button>
+                  <button id="btn-admin-bonus-all" class="wood-btn">🎁 แจกโบนัส +100 Bytes &amp; พลังงานเต็ม 100% ทั้งห้อง</button>
+                  <button id="btn-admin-unlock-unit-coop" class="wood-btn">✅ ปลดล็อกสัปดาห์ที่เลือกให้ทั้งห้อง (Co-op)</button>
+                  <button id="btn-admin-unlock-all-coop" class="wood-btn">🏆 ปลดล็อกครบ 18 สัปดาห์ให้ทั้งห้อง</button>
+                  <button id="btn-admin-reset-coop" class="wood-btn danger-btn">🔄 รีเซ็ตสถานะอาคารของห้องเรียน</button>
+                </div>
+              </div>
+
+              <!-- 3. Teacher Personal Demo & God-Mode Cheats -->
+              <div class="admin-subcard">
+                <h4>⚡ 3. เครื่องมือสาธิตการสอนสำหรับเครื่องครู (Teacher God-Mode &amp; Demo Tools)</h4>
+                <div class="admin-cmd-grid">
+                  <button id="btn-admin-godspeed" class="wood-btn">⚡ วิ่งไวพิเศษ 2x &amp; พลังงานไม่จำกัด: ปิดอยู่</button>
+                  <button id="btn-admin-open-lab-self" class="wood-btn primary-btn">🖥️ เปิดแล็บสัปดาห์ที่เลือกทันที (บนเครื่องครู)</button>
+                  <button id="btn-admin-warp-self" class="wood-btn win-btn">🚀 วาร์ปครูไปสัปดาห์ที่เลือกทันที</button>
+                  <button id="btn-admin-unlock-all-self" class="wood-btn">🔓 ปลดล็อกครบ 18 สัปดาห์ (เครื่องครู)</button>
+                  <button id="btn-admin-all-items" class="wood-btn">🎒 เสกไอเท็มครบทุกชิ้น + 1,000 Bytes</button>
+                  <div class="admin-time-group">
+                    <span>🕒 เวลา:</span>
+                    <button id="btn-admin-time-day" class="wood-btn small-btn">☀️ เช้า</button>
+                    <button id="btn-admin-time-eve" class="wood-btn small-btn">🌇 เย็น</button>
+                    <button id="btn-admin-time-night" class="wood-btn small-btn">🌙 ค่ำ</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div id="teacher-summary-cards" class="teacher-stats-grid"></div>
             <div id="teacher-table-wrap"></div>
           </div>
