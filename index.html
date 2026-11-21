@@ -24,23 +24,11 @@
         <!-- Student & Institution Setup Panel -->
         <div class="setup-panel">
           <div class="setup-avatar-col">
-            <div class="setup-avatar-frame">
+            <div class="setup-avatar-frame" id="btn-setup-avatar-click" title="คลิกเพื่อปรับแต่งตัวละครเต็มรูปแบบ" style="cursor:pointer;">
               <canvas id="setup-avatar-preview" width="84" height="84"></canvas>
             </div>
-            <div class="color-picker-row">
-              <span>เสื้อ:</span>
-              <button class="swatch active" data-part="shirt" data-color="#2a7b5f" style="background:#2a7b5f" title="เขียวแอดมิน"></button>
-              <button class="swatch" data-part="shirt" data-color="#2b6cb0" style="background:#2b6cb0" title="น้ำเงิน Windows"></button>
-              <button class="swatch" data-part="shirt" data-color="#b83280" style="background:#b83280" title="ชมพู"></button>
-              <button class="swatch" data-part="shirt" data-color="#c05621" style="background:#c05621" title="ส้ม Ubuntu"></button>
-            </div>
-            <div class="color-picker-row">
-              <span>หมวก:</span>
-              <button class="swatch active" data-part="hat" data-color="#c85a17" style="background:#c85a17" title="ส้มอิฐ"></button>
-              <button class="swatch" data-part="hat" data-color="#1e40af" style="background:#1e40af" title="น้ำเงินเข้ม"></button>
-              <button class="swatch" data-part="hat" data-color="#6b46c1" style="background:#6b46c1" title="ม่วง"></button>
-              <button class="swatch" data-part="hat" data-color="#2d3748" style="background:#2d3748" title="ดำเท่"></button>
-            </div>
+            <button id="btn-open-customizer-title" class="wood-btn small-btn primary-btn" style="width:100%;">🎨 แต่งตัวละคร</button>
+            <button id="btn-random-look-title" class="wood-btn small-btn" style="width:100%;">🎲 สุ่มลุคเท่</button>
           </div>
 
           <div class="setup-fields-col">
@@ -87,7 +75,7 @@
     <!-- Top-Left HUD: Player & Active Quest Tracker -->
     <div id="hud-top-left" class="hud-layer hidden">
       <div class="wood-panel mini-profile">
-        <canvas id="hud-avatar" width="48" height="48"></canvas>
+        <canvas id="hud-avatar" width="48" height="48" title="คลิกเพื่อปรับแต่งตัวละคร (C)" style="cursor:pointer;"></canvas>
         <div class="profile-meta">
           <div id="hud-player-name" class="profile-name">นักศึกษาฝึกงาน ปวช.</div>
           <div class="profile-rank" id="hud-rank">Lv.1 ผู้ช่วยแอดมินมือใหม่</div>
@@ -323,6 +311,7 @@
           <div class="help-section">
             <h3>🪟 กิจกรรมพิเศษ &amp; ทบทวนสอบ ปวช.</h3>
             <div class="help-actions">
+              <button id="btn-open-customizer-help" class="wood-btn">🎨 ปรับแต่งตัวละคร (ทรงผม / หน้า / ผิว / เสื้อ / กางเกง / รองเท้า)</button>
               <button id="btn-win-minigame" class="wood-btn win-btn">🪟 เปิดมินิเกม Windows Server (สัปดาห์ที่ 14: AD DS / IIS / PowerShell)</button>
               <button id="btn-master-quiz" class="wood-btn primary-btn">🏆 ทดสอบประมวลความรู้รวม (Master Quiz 18 ข้อ)</button>
               <button id="btn-view-cert" class="wood-btn">🎓 เกียรติบัตร &amp; พิมพ์ PDF</button>
@@ -330,6 +319,32 @@
               <button id="btn-reset-save" class="wood-btn danger-btn">🗑️ ล้างเซฟและเริ่มใหม่</button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- 16-Bit Character Customizer Modal (Hair, Face, Skin, Shirt, Pants, Shoes, Hat) -->
+      <div id="modal-customize" class="modal-window wood-panel large-modal hidden">
+        <div class="modal-header">
+          <div>
+            <h2>🎨 ห้องแต่งตัวละคร 16-Bit (Character Creator)</h2>
+            <p class="modal-sub">ปรับแต่ง ทรงผม สีผม ใบหน้า สีผิว เสื้อ กางเกง รองเท้า และหมวก — เห็นได้ทั้งในเกมและห้องเพื่อน 40–100 คน!</p>
+          </div>
+          <button class="close-btn" data-close="modal-customize">✕</button>
+        </div>
+        <div class="customizer-layout">
+          <div class="customizer-preview-col">
+            <div class="customizer-stage">
+              <canvas id="cust-preview-canvas" width="160" height="192"></canvas>
+            </div>
+            <div class="cust-preview-controls">
+              <button id="btn-cust-rot-left" class="wood-btn small-btn" title="หมุนซ้าย">◀ หมุน</button>
+              <button id="btn-cust-walk-toggle" class="wood-btn small-btn">🚶 เดิน</button>
+              <button id="btn-cust-rot-right" class="wood-btn small-btn" title="หมุนขวา">หมุน ▶</button>
+            </div>
+            <button id="btn-cust-random" class="wood-btn" style="width:100%;">🎲 สุ่มชุดและทรงผม</button>
+            <button id="btn-cust-save" class="wood-btn primary-btn" style="width:100%;">✅ บันทึกลุคนี้เลย!</button>
+          </div>
+          <div id="cust-options-col" class="customizer-options-col"></div>
         </div>
       </div>
 
