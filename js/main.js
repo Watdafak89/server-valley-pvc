@@ -62,9 +62,50 @@
   let returnToLabUnit = null;
   let currentLabUnit = null;
 
-  // Input State
+  // Input State & Movement Control Mode ('both' | 'wasd' | 'arrows')
+  const CONTROL_MODE_KEY = 'sv_control_mode';
+  let controlMode = 'both';
+  try {
+    const savedCtrl = localStorage.getItem(CONTROL_MODE_KEY);
+    if (savedCtrl === 'both' || savedCtrl === 'wasd' || savedCtrl === 'arrows') controlMode = savedCtrl;
+  } catch (e) {}
+
   const keys = {};
   const touchDir = { up: false, down: false, left: false, right: false };
+
+  function mapEventToMoveCode(e) {
+    if (e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD' ||
+        e.code === 'ArrowUp' || e.code === 'ArrowDown' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+      return e.code;
+    }
+    const k = (e.key || '').toLowerCase();
+    if (k === 'w' || k === 'ไ' || k === '"') return 'KeyW';
+    if (k === 's' || k === 'ห' || k === 'ฆ') return 'KeyS';
+    if (k === 'a' || k === 'ฟ' || k === 'ฤ') return 'KeyA';
+    if (k === 'd' || k === 'ก' || k === 'ฏ') return 'KeyD';
+    return null;
+  }
+
+  function updateKeycapTesterUI() {
+    const map = { KeyW: 'kc-w', KeyA: 'kc-a', KeyS: 'kc-s', KeyD: 'kc-d' };
+    Object.keys(map).forEach((code) => {
+      const el = document.getElementById(map[code]);
+      if (el) el.classList.toggle('pressed', !!keys[code]);
+    });
+  }
+
+  function clearAllKeys() {
+    Object.keys(keys).forEach((k) => { keys[k] = false; });
+    touchDir.up = touchDir.down = touchDir.left = touchDir.right = false;
+    updateKeycapTesterUI();
+  }
+
+  function blurActiveInput() {
+    const ae = document.activeElement;
+    if (ae && typeof ae.blur === 'function' && ae !== document.body) {
+      ae.blur();
+    }
+  }
 
   // Dialog State
   let dialogQueue = null; // { speaker, role, style, lines[], index, choices?, onEnd? }
@@ -680,6 +721,7 @@
 
   function openModal(id) {
     closeDialog();
+    clearAllKeys();
     document.querySelectorAll('.modal-window').forEach((m) => m.classList.add('hidden'));
     modalBackdrop.classList.remove('hidden');
     document.getElementById(id).classList.remove('hidden');
@@ -692,6 +734,8 @@
     modalBackdrop.classList.add('hidden');
     document.querySelectorAll('.modal-window').forEach((m) => m.classList.add('hidden'));
     activeModalId = null;
+    clearAllKeys();
+    blurActiveInput();
 
     if (wasCodex && returnToLabUnit !== null) {
       const u = returnToLabUnit;
@@ -1242,11 +1286,12 @@
 
     const cur = state.inventory[state.selectedSlot];
     const banner = document.getElementById('selected-item-banner');
+    const moveHint = controlMode === 'arrows' ? 'ลูกศร เดิน' : controlMode === 'wasd' ? 'WASD เดิน' : 'WASD/ลูกศร เดิน';
     if (cur && GD.ITEMS[cur.id]) {
       const it = GD.ITEMS[cur.id];
-      banner.textContent = `🎒 ${it.name} — ${it.type === 'consumable' || it.type === 'utility' ? 'กด [F] เพื่อใช้งาน' : 'กด [E] ที่ตู้เซิร์ฟเวอร์'} • กด Shift วิ่งเร็ว`;
+      banner.textContent = `🎒 ${it.name} — ${it.type === 'consumable' || it.type === 'utility' ? 'กด [F] ใช้งาน' : 'กด [E] ที่ตู้เซิร์ฟเวอร์'} • ${moveHint} • Shift วิ่ง`;
     } else {
-      banner.textContent = 'ช่องว่าง • กด 1–9,0,-,= เลือกไอเท็ม • กด [Shift] วิ่งเร็ว • กด [M] วาร์ปด่วน';
+      banner.textContent = `ช่องว่าง • ${moveHint} • [Shift] วิ่งเร็ว • [E] โต้ตอบ • [M] วาร์ปด่วน`;
     }
   }
 
@@ -1310,13 +1355,15 @@
         state.speedBoostTimer = Math.max(0, state.speedBoostTimer - dt);
       }
 
-      // Movement
+      // Movement (supports WASD, Arrow keys, or Both depending on controlMode)
+      const allowWasd = controlMode === 'both' || controlMode === 'wasd';
+      const allowArrows = controlMode === 'both' || controlMode === 'arrows';
       let dx = 0;
       let dy = 0;
-      if (keys['KeyW'] || keys['ArrowUp'] || touchDir.up) dy -= 1;
-      if (keys['KeyS'] || keys['ArrowDown'] || touchDir.down) dy += 1;
-      if (keys['KeyA'] || keys['ArrowLeft'] || touchDir.left) dx -= 1;
-      if (keys['KeyD'] || keys['ArrowRight'] || touchDir.right) dx += 1;
+      if ((allowWasd && keys['KeyW']) || (allowArrows && keys['ArrowUp']) || touchDir.up) dy -= 1;
+      if ((allowWasd && keys['KeyS']) || (allowArrows && keys['ArrowDown']) || touchDir.down) dy += 1;
+      if ((allowWasd && keys['KeyA']) || (allowArrows && keys['ArrowLeft']) || touchDir.left) dx -= 1;
+      if ((allowWasd && keys['KeyD']) || (allowArrows && keys['ArrowRight']) || touchDir.right) dx += 1;
 
       if (dx !== 0 || dy !== 0) {
         const len = Math.hypot(dx, dy);
@@ -2093,6 +2140,8 @@
     hudTopRight.classList.remove('hidden');
     hudEnergy.classList.remove('hidden');
     hudHotbar.classList.remove('hidden');
+    clearAllKeys();
+    blurActiveInput();
 
     refreshHudAvatar();
     renderHotbar();
@@ -2118,16 +2167,29 @@
     setTimeout(autoJoinFromInviteOrConfig, 350);
   }
 
-  // Keyboard Listeners
+  // Keyboard Listeners (supports English & Thai keyboard layouts for WASD!)
   window.addEventListener('keydown', (e) => {
-    // Allow typing inside inputs/terminals without triggering game hotkeys!
-    const tag = document.activeElement && document.activeElement.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
-      if (e.key === 'Escape' && activeModalId) closeAllModals();
+    // Allow typing inside visible inputs/terminals without triggering game hotkeys!
+    const ae = document.activeElement;
+    const tag = ae && ae.tagName;
+    const isVisibleInput = (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') && ae.offsetParent !== null;
+    if (isVisibleInput) {
+      if (e.key === 'Escape') {
+        ae.blur();
+        if (activeModalId) closeAllModals();
+      }
       return;
     }
 
-    keys[e.code] = true;
+    const moveCode = mapEventToMoveCode(e);
+    if (moveCode) {
+      keys[moveCode] = true;
+      if (moveCode.startsWith('Arrow') && state.started && !activeModalId) {
+        e.preventDefault();
+      }
+      updateKeycapTesterUI();
+    }
+    if (e.code) keys[e.code] = true;
 
     if (e.key === 'Escape') {
       if (activeModalId) closeAllModals();
@@ -2172,8 +2234,19 @@
   });
 
   window.addEventListener('keyup', (e) => {
-    keys[e.code] = false;
+    const moveCode = mapEventToMoveCode(e);
+    if (moveCode) {
+      keys[moveCode] = false;
+      updateKeycapTesterUI();
+    }
+    if (e.code) keys[e.code] = false;
   });
+
+  window.addEventListener('blur', clearAllKeys);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) clearAllKeys();
+  });
+  canvas.addEventListener('pointerdown', blurActiveInput);
 
   // ==================== MULTIPLAYER, LEADERBOARD, CHAT & TEACHER DASHBOARD ====================
   function drawSpeechBubble(ctx, cx, cy, text) {
@@ -2501,6 +2574,7 @@
     if (!chatInput || !chatInput.value.trim()) return;
     Multiplayer.sendChat(chatInput.value);
     chatInput.value = '';
+    chatInput.blur();
     SoundFX.talk();
   };
   document.getElementById('btn-chat-send').onclick = sendChatNow;
@@ -2552,6 +2626,36 @@
   const bannerEl = document.getElementById('selected-item-banner');
   bannerEl.style.cursor = 'pointer';
   bannerEl.onclick = useSelectedItem;
+
+  // Movement Controls Settings Wiring (WASD / Arrows / Both)
+  function syncControlModeUI() {
+    document.querySelectorAll('#ctrl-mode-group [data-ctrl-mode]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.ctrlMode === controlMode);
+    });
+    const statusEl = document.getElementById('ctrl-mode-status');
+    if (statusEl) {
+      if (controlMode === 'wasd') {
+        statusEl.textContent = 'โหมดปัจจุบัน: ใช้เฉพาะปุ่ม W A S D ในการเดิน (กด Shift ค้างเพื่อวิ่งเร็ว)';
+      } else if (controlMode === 'arrows') {
+        statusEl.textContent = 'โหมดปัจจุบัน: ใช้เฉพาะปุ่มลูกศร ↑ ↓ ← → ในการเดิน (กด Shift ค้างเพื่อวิ่งเร็ว)';
+      } else {
+        statusEl.textContent = 'โหมดปัจจุบัน: เดินได้ทั้ง W A S D และปุ่มลูกศร (กด Shift ค้างเพื่อวิ่งเร็ว)';
+      }
+    }
+    if (state.started) renderHotbar();
+  }
+
+  document.querySelectorAll('#ctrl-mode-group [data-ctrl-mode]').forEach((btn) => {
+    btn.onclick = () => {
+      SoundFX.click();
+      controlMode = btn.dataset.ctrlMode;
+      try { localStorage.setItem(CONTROL_MODE_KEY, controlMode); } catch (e) {}
+      syncControlModeUI();
+      const label = controlMode === 'wasd' ? 'ปุ่ม W A S D' : controlMode === 'arrows' ? 'ปุ่มลูกศร' : 'W A S D + ลูกศร';
+      showToast(`🎮 ตั้งค่าการควบคุมเป็น "${label}" เรียบร้อยแล้ว!`, true);
+    };
+  });
+  syncControlModeUI();
 
   // Help Modal Buttons
   document.getElementById('btn-win-minigame').onclick = () => {
