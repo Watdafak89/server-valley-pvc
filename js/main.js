@@ -83,6 +83,19 @@
     if (k === 's' || k === 'ห' || k === 'ฆ') return 'KeyS';
     if (k === 'a' || k === 'ฟ' || k === 'ฤ') return 'KeyA';
     if (k === 'd' || k === 'ก' || k === 'ฏ') return 'KeyD';
+    if (k === 'arrowup' || k === 'up') return 'ArrowUp';
+    if (k === 'arrowdown' || k === 'down') return 'ArrowDown';
+    if (k === 'arrowleft' || k === 'left') return 'ArrowLeft';
+    if (k === 'arrowright' || k === 'right') return 'ArrowRight';
+    const kc = e.keyCode || e.which;
+    if (kc === 87) return 'KeyW';
+    if (kc === 83) return 'KeyS';
+    if (kc === 65) return 'KeyA';
+    if (kc === 68) return 'KeyD';
+    if (kc === 38) return 'ArrowUp';
+    if (kc === 40) return 'ArrowDown';
+    if (kc === 37) return 'ArrowLeft';
+    if (kc === 39) return 'ArrowRight';
     return null;
   }
 
@@ -712,6 +725,8 @@
   function closeDialog() {
     dialogQueue = null;
     dialogOverlay.classList.add('hidden');
+    clearAllKeys();
+    blurActiveInput();
   }
 
   btnDialogNext.onclick = advanceDialog;
@@ -2167,7 +2182,7 @@
     setTimeout(autoJoinFromInviteOrConfig, 350);
   }
 
-  // Keyboard Listeners (supports English & Thai keyboard layouts for WASD!)
+  // Keyboard Listeners (capture phase + supports English & Thai keyboard layouts for WASD!)
   window.addEventListener('keydown', (e) => {
     // Allow typing inside visible inputs/terminals without triggering game hotkeys!
     const ae = document.activeElement;
@@ -2181,10 +2196,13 @@
       return;
     }
 
+    // Do not hijack browser shortcuts like Ctrl+R, Ctrl+F, Alt+Tab
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
     const moveCode = mapEventToMoveCode(e);
     if (moveCode) {
       keys[moveCode] = true;
-      if (moveCode.startsWith('Arrow') && state.started && !activeModalId) {
+      if (state.started && !activeModalId && !dialogQueue) {
         e.preventDefault();
       }
       updateKeycapTesterUI();
@@ -2231,7 +2249,7 @@
         renderHotbar();
       }
     }
-  });
+  }, true);
 
   window.addEventListener('keyup', (e) => {
     const moveCode = mapEventToMoveCode(e);
@@ -2240,7 +2258,7 @@
       updateKeycapTesterUI();
     }
     if (e.code) keys[e.code] = false;
-  });
+  }, true);
 
   window.addEventListener('blur', clearAllKeys);
   document.addEventListener('visibilitychange', () => {
