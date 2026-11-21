@@ -13,13 +13,13 @@
     instructorName: 'อาจารย์ผู้สอนรายวิชาฯ',
     skin: '#f6cfa6',
     hairStyle: 'short',
-    hairColor: '#241712',
-    faceStyle: 'glasses',
-    shirtColor: '#2a7b5f',
+    hairColor: '#5a331c',
+    faceStyle: 'smile',
+    shirtColor: '#c53030',
     shirtStyle: 'jacket',
     pantsColor: '#2c4969',
     shoesColor: '#5c3317',
-    hatColor: ''
+    hatColor: '#c85a17'
   };
 
   // DOM References
@@ -54,6 +54,7 @@
     { x: 43.2 * TILE, y: 41.2 * TILE, vx: -0.32, color: '#ff5252', minX: 43.1 * TILE, maxX: 44.6 * TILE }
   ];
   const BENCHES = [
+    { tx: 6, ty: 14 },
     { tx: 37, ty: 29 }, { tx: 45, ty: 29 },
     { tx: 16, ty: 21 }, { tx: 48, ty: 21 },
     { tx: 14, ty: 37 }, { tx: 56, ty: 37 }
@@ -1731,7 +1732,7 @@
   function render() {
     const vw = canvas.width;
     const vh = canvas.height;
-    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, vw, vh);
 
     // Camera zoom (cozy Stardew scale)
@@ -2011,11 +2012,26 @@
     // 3. Y-Sorted Renderables with Viewport Culling for fast 4x Map rendering
     const renderList = [];
 
-    // Central Plaza Animated Fountain
+    // Central Plaza Animated Well / Fountain & Admin Farmyard Roofed Stone Water Well!
     if (41 >= startX - 3 && 41 <= endX + 3 && 24 >= startY - 3 && 24 <= endY + 3) {
       renderList.push({
         y: 24 * TILE + 28,
         draw: () => Sprites.drawFountain(ctx, 41 * TILE, 24 * TILE, tick)
+      });
+    }
+    if (12 >= startX - 3 && 12 <= endX + 3 && 14 >= startY - 3 && 14 <= endY + 3) {
+      renderList.push({
+        y: 14 * TILE + 28,
+        draw: () => Sprites.drawFountain(ctx, 12 * TILE, 14 * TILE, tick)
+      });
+    }
+    // Stardew Farmyard Beehouses next to Admin Cottage fence (like top-left of screenshot!)
+    if (3 >= startX - 2 && 3 <= endX + 2 && 8 >= startY - 2 && 8 <= endY + 2) {
+      renderList.push({
+        y: 8 * TILE + 26,
+        draw: () => {
+          Sprites.drawServerRack(ctx, 3 * TILE, 8 * TILE, state.completedUnits.length > 0, tick);
+        }
       });
     }
 

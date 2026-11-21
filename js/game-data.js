@@ -687,14 +687,51 @@ window.GAME_DATA = (function () {
     };
 
     // Grand Boulevards dividing 4 Districts
-    fillRect(3, 26, 80, 27, 'path'); // Main East-West Boulevard
-    fillRect(41, 3, 42, 50, 'path'); // Main North-South Avenue
+    fillRect(3, 25, 80, 27, 'path'); // Main East-West Boulevard
+    fillRect(40, 3, 43, 50, 'path'); // Main North-South Avenue
+
+    // Warm Golden-Ochre Stardew Farmyards in front of all District Buildings!
+    // Zone 1 (NW) Farmyard Clearing (matches the uploaded Stardew Valley screenshot!)
+    fillRect(3, 8, 34, 21, 'path');
+    fillRect(4, 8, 9, 8, 'grass');   // Lush green grass fringe right under Cottage front porch!
+    fillRect(15, 8, 20, 8, 'grass'); // Grass fringe under Town Hall porch
+    fillRect(25, 8, 30, 8, 'grass'); // Grass fringe under VM Lab porch
+
+    // Separated Stardew Crop Plots in the Admin Farmyard (with golden-dirt walkways between plots!)
+    fillRect(4, 12, 5, 13, 'soil');
+    fillRect(7, 12, 8, 13, 'soil');
+    fillRect(10, 12, 11, 13, 'soil');
+    fillRect(4, 15, 5, 16, 'soil');
+    fillRect(7, 15, 8, 16, 'soil');
+    fillRect(10, 15, 11, 16, 'soil');
+
+    // Wooden Farm Fence enclosing the West & South sides of the Admin Crop Yard (East side open to village!)
+    fillRect(2, 8, 2, 17, 'fence');
+    fillRect(2, 17, 11, 17, 'fence');
+
+    // Zone 2 (NE) Golden Earth Clearing & Crop Plots
+    fillRect(45, 8, 79, 21, 'path');
+    fillRect(53, 12, 54, 13, 'soil');
+    fillRect(56, 12, 57, 13, 'soil');
+    fillRect(68, 12, 70, 14, 'soil');
+    fillRect(31, 4, 39, 7, 'grass');
+    fillRect(65, 4, 71, 8, 'grass');
+
+    // Zone 3 (SW) Golden Earth Clearing & Crop Plots
+    fillRect(4, 34, 34, 47, 'path');
+    fillRect(12, 38, 14, 40, 'soil');
+    fillRect(16, 38, 18, 40, 'soil');
+
+    // Zone 4 (SE) Golden Earth Clearing & Crop Plots
+    fillRect(47, 34, 74, 47, 'path');
+    fillRect(56, 38, 58, 40, 'soil');
+    fillRect(60, 38, 62, 40, 'soil');
 
     // District Internal Service Roads
-    fillRect(4, 10, 79, 11, 'path'); // Upper North lane
-    fillRect(4, 19, 79, 20, 'path'); // Lower North lane
-    fillRect(4, 35, 79, 36, 'path'); // Upper South lane
-    fillRect(4, 45, 79, 46, 'path'); // Lower South lane
+    fillRect(4, 10, 79, 11, 'path');
+    fillRect(4, 19, 79, 20, 'path');
+    fillRect(4, 35, 79, 36, 'path');
+    fillRect(4, 45, 79, 46, 'path');
 
     // Vertical Connectors inside Districts
     fillRect(12, 10, 13, 46, 'path');
@@ -705,26 +742,18 @@ window.GAME_DATA = (function () {
     // Grand Central Plaza (Heart of Server Valley)
     fillRect(37, 23, 46, 30, 'stone');
 
-    // District Mini Plazas
-    fillRect(15, 8, 20, 10, 'stone'); // Town Hall Front
-    fillRect(64, 43, 70, 45, 'stone'); // Grand Hall Front
-
     // 3 Scenic Waterways + Wooden Bridges!
     // 1. West Stream (with horizontal bridge on Boulevard)
     fillRect(22, 22, 24, 28, 'water');
-    fillRect(22, 26, 24, 27, 'bridge');
+    fillRect(22, 25, 24, 27, 'bridge');
 
     // 2. East Lake (with horizontal bridge on Boulevard)
     fillRect(59, 22, 63, 28, 'water');
-    fillRect(59, 26, 63, 27, 'bridge');
+    fillRect(59, 25, 63, 27, 'bridge');
 
     // 3. South Koi Pond (with vertical bridge on Central Avenue)
     fillRect(38, 39, 45, 42, 'water');
-    fillRect(41, 39, 42, 42, 'bridge');
-
-    // Cozy Admin Cottage Garden (Stardew crops + wooden fence!)
-    fillRect(4, 12, 9, 14, 'soil');
-    fillRect(4, 15, 9, 15, 'fence');
+    fillRect(40, 39, 43, 42, 'bridge');
 
     // Decorative Park Fences around Central Plaza corners
     fillRect(35, 23, 36, 23, 'fence');
