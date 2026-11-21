@@ -905,7 +905,7 @@
     dialogRole.textContent = dialogQueue.role || '';
 
     const pCtx = dialogPortrait.getContext('2d');
-    pCtx.imageSmoothingEnabled = false;
+    pCtx.imageSmoothingEnabled = true;
     pCtx.clearRect(0, 0, 96, 96);
     const pCanvas = Sprites.getPortrait(dialogQueue.speaker, dialogQueue.style || GD.PLAYER_STYLE);
     pCtx.drawImage(pCanvas, 0, 0, 96, 96);
@@ -1555,7 +1555,7 @@
   function updateHUD() {
     const pct = Math.round((state.completedUnits.length / TOTAL_UNITS) * 100);
     const nameEl = document.getElementById('hud-player-name');
-    if (nameEl) nameEl.textContent = (state.profile && state.profile.studentName) || DEFAULT_PROFILE.studentName;
+    if (nameEl) nameEl.textContent = ((state.profile && state.profile.studentName) || DEFAULT_PROFILE.studentName) + ' ✏️';
     document.getElementById('hud-rank').textContent = getPlayerRank();
     document.getElementById('hud-uptime-pct').textContent = pct + '%';
     document.getElementById('hud-uptime-fill').style.width = pct + '%';
@@ -1787,7 +1787,7 @@
   function render() {
     const vw = canvas.width;
     const vh = canvas.height;
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = true;
     ctx.clearRect(0, 0, vw, vh);
 
     // Camera zoom (cozy Stardew scale)
@@ -2491,7 +2491,7 @@
     requestAnimationFrame(loop);
   }
 
-  // ==================== 16-BIT CHARACTER CUSTOMIZER & PROFILE SETUP ====================
+  // ==================== 2.5D CHARACTER CUSTOMIZER & PROFILE EDITOR ====================
   function resizeCanvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -2499,27 +2499,38 @@
 
   const CUSTOM_OPTIONS = {
     hairStyle: [
-      { val: 'short', label: 'ผมสั้นเรียบ' },
-      { val: 'spiky', label: 'ผมตั้งเท่' },
-      { val: 'bob', label: 'ผมบ๊อบน่ารัก' },
-      { val: 'long', label: 'ผมยาวสลวย' },
-      { val: 'ponytail', label: 'ผมหางม้า' },
-      { val: 'curly', label: 'ผมหยักศก' }
+      { val: 'short', label: '💇 ผมสั้นเรียบ' },
+      { val: 'spiky', label: '⚡ ผมตั้งเท่' },
+      { val: 'sidepart', label: '✨ ผมปัดข้าง' },
+      { val: 'wolfcut', label: '🐺 วูล์ฟคัท' },
+      { val: 'bob', label: '🎀 ผมบ๊อบน่ารัก' },
+      { val: 'long', label: '🌸 ผมยาวสลวย' },
+      { val: 'ponytail', label: '🎗️ ผมหางม้า' },
+      { val: 'twintails', label: '🎶 ทวินเทลคู่' },
+      { val: 'bun', label: '🍡 ดังโงะ/มวยผม' },
+      { val: 'curly', label: '☁️ ผมหยักศก' }
     ],
     hairColor: [
-      { val: '#241712', name: 'ดำเข้ม' },
+      { val: '#241712', name: 'ดำธรรมชาติ' },
       { val: '#5a331c', name: 'น้ำตาลช็อกโกแลต' },
-      { val: '#a36a2c', name: 'น้ำตาลทอง' },
+      { val: '#a36a2c', name: 'น้ำตาลคาราเมล' },
       { val: '#e6b84c', name: 'บลอนด์ทอง' },
       { val: '#9e2a2b', name: 'แดงเชอร์รี' },
-      { val: '#3b4cca', name: 'น้ำเงินอนิเมะ' }
+      { val: '#3b4cca', name: 'น้ำเงินโคบอลต์' },
+      { val: '#e2e8f0', name: 'เงินซิลเวอร์' },
+      { val: '#f472b6', name: 'ชมพูพาสเทล' },
+      { val: '#10b981', name: 'เขียวมินต์ไซเบอร์' },
+      { val: '#8b5cf6', name: 'ม่วงลาเวนเดอร์' }
     ],
     faceStyle: [
       { val: 'smile', label: '😊 ยิ้มสดใส' },
       { val: 'glasses', label: '🤓 แว่นเด็กไอที' },
       { val: 'cool', label: '😎 แว่นกันแดดเท่' },
       { val: 'wink', label: '😉 ขยิบตาขี้เล่น' },
-      { val: 'happy', label: '😄 ยิ้มตาหยี' }
+      { val: 'happy', label: '😄 ยิ้มตาหยี' },
+      { val: 'cat', label: '😺 ยิ้มเหมียว :3' },
+      { val: 'cyber', label: '🥽 แว่น Cyber AR' },
+      { val: 'star', label: '🤩 ตาประกายดาว' }
     ],
     skin: [
       { val: '#fde0c4', name: 'ขาวอมชมพู' },
@@ -2529,43 +2540,59 @@
       { val: '#8d5524', name: 'ผิวเข้ม' }
     ],
     shirtStyle: [
+      { val: 'overalls', label: '🌾 ชุดเอี๊ยม Stardew' },
       { val: 'jacket', label: '🧥 แจ็กเก็ตไอที' },
       { val: 'polo', label: '👔 เสื้อโปโล' },
-      { val: 'hoodie', label: '🎽 เสื้อฮู้ดดี้' }
+      { val: 'hoodie', label: '🎽 เสื้อฮู้ดดี้' },
+      { val: 'suit', label: '🕴️ สูทผูกไทด์' },
+      { val: 'labcoat', label: '🥼 เสื้อกาวน์วิศวกร' },
+      { val: 'vest', label: '🧶 เสื้อกั๊กไหมพรม' },
+      { val: 'cyber_armor', label: '⚡ เกราะ Cyber Neon' }
     ],
     shirtColor: [
       { val: '#2a7b5f', name: 'เขียวแอดมิน' },
       { val: '#2b6cb0', name: 'น้ำเงิน Windows' },
-      { val: '#b83280', name: 'ชมพู' },
+      { val: '#b83280', name: 'ชมพูมาเจนต้า' },
       { val: '#c05621', name: 'ส้ม Ubuntu' },
-      { val: '#6b46c1', name: 'ม่วง' },
-      { val: '#2d3748', name: 'ดำเท่' },
-      { val: '#e2e8f0', name: 'ขาวนักศึกษา' },
-      { val: '#c53030', name: 'แดง' }
+      { val: '#6b46c1', name: 'ม่วงรอยัล' },
+      { val: '#2d3748', name: 'ดำชาร์โคล' },
+      { val: '#e2e8f0', name: 'ขาวคลีน' },
+      { val: '#c53030', name: 'แดงคริมสัน' },
+      { val: '#d97706', name: 'เหลืองแอมเบอร์' },
+      { val: '#0d9488', name: 'เขียวน้ำทะเล' }
     ],
     pantsColor: [
-      { val: '#2c4969', name: 'ยีนส์เข้ม' },
+      { val: '#2c4969', name: 'ยีนส์เดนิม' },
       { val: '#22272e', name: 'ดำสแล็ก' },
       { val: '#8c6b43', name: 'น้ำตาลกากี' },
       { val: '#1e3a5f', name: 'กรมท่า' },
-      { val: '#3b523b', name: 'เขียวทหาร' },
-      { val: '#64748b', name: 'เทา' }
+      { val: '#3b523b', name: 'เขียวคาร์โก้' },
+      { val: '#64748b', name: 'เทาโมเดิร์น' },
+      { val: '#7c2d12', name: 'น้ำตาลเรโทร' }
     ],
     shoesColor: [
-      { val: '#5c3317', name: 'น้ำตาลหนัง' },
-      { val: '#1f2428', name: 'ดำผ้าใบ' },
-      { val: '#e2e8f0', name: 'ขาวสนีกเกอร์' },
-      { val: '#c83e37', name: 'แดงผ้าใบ' },
-      { val: '#2563eb', name: 'น้ำเงินสปอร์ต' },
-      { val: '#d97706', name: 'เหลืองบูท' }
+      { val: '#5c3317', name: 'บูทหนังน้ำตาล' },
+      { val: '#1f2428', name: 'ผ้าใบดำ' },
+      { val: '#e2e8f0', name: 'สนีกเกอร์ขาว' },
+      { val: '#c83e37', name: 'ผ้าใบแดง' },
+      { val: '#2563eb', name: 'สปอร์ตน้ำเงิน' },
+      { val: '#d97706', name: 'บูทเหลือง' }
+    ],
+    hatStylePills: [
+      { val: '', label: '✕ ไม่ใส่หมวก' },
+      { val: 'straw', label: '👒 หมวกฟาง Stardew' },
+      { val: 'headphones', label: '🎧 หูฟังเกมมิ่ง' },
+      { val: 'catears', label: '🐱 หูแมวเนโกะ' },
+      { val: 'crown', label: '👑 มงกุฎทอง' }
     ],
     hatColor: [
       { val: '', name: 'ไม่ใส่หมวก (โชว์ทรงผม)' },
-      { val: '#c85a17', name: 'ส้มอิฐ' },
-      { val: '#1e40af', name: 'น้ำเงินเข้ม' },
-      { val: '#6b46c1', name: 'ม่วง' },
-      { val: '#2d3748', name: 'ดำเท่' },
-      { val: '#b91c1c', name: 'แดง' }
+      { val: '#c85a17', name: 'หมวกแก๊ปส้มอิฐ' },
+      { val: '#1e40af', name: 'หมวกแก๊ปน้ำเงิน' },
+      { val: '#6b46c1', name: 'หมวกแก๊ปม่วง' },
+      { val: '#2d3748', name: 'หมวกแก๊ปดำ' },
+      { val: '#b91c1c', name: 'หมวกแก๊ปแดง' },
+      { val: '#047857', name: 'หมวกแก๊ปเขียว' }
     ]
   };
 
@@ -2647,6 +2674,39 @@
     if (!col) return;
     col.innerHTML = '';
 
+    // 1. Editable Player Name & Class/Room Box (live sync with custDraft)
+    const nameGroup = document.createElement('div');
+    nameGroup.className = 'cust-group';
+    nameGroup.style.background = 'linear-gradient(135deg, #fffbeb, #fef3c7)';
+    nameGroup.style.borderColor = '#d97706';
+    nameGroup.innerHTML = `
+      <div class="cust-group-title" style="color:#92400e;">✏️ แก้ไขชื่อตัวละคร & ระดับชั้น (แสดงบนหัวในโหมดออนไลน์ & เกียรติบัตร)</div>
+      <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:8px; margin-top:4px;">
+        <div>
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#78350f; margin-bottom:2px;">👤 ชื่อ-นามสกุล / ชื่อตัวละคร</label>
+          <input id="cust-input-name" type="text" maxlength="40" placeholder="เช่น นายสมชาย สายเซิร์ฟเวอร์"
+            style="width:100%; padding:6px 10px; border:2px solid #b45309; border-radius:6px; font-family:inherit; font-size:0.9rem; font-weight:600; background:#fffdf8; color:#271306;" />
+        </div>
+        <div>
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:#78350f; margin-bottom:2px;">🏫 ระดับชั้น / ห้อง</label>
+          <input id="cust-input-class" type="text" maxlength="28" placeholder="เช่น ปวช.2/1 เทคโนโลยีสารสนเทศ"
+            style="width:100%; padding:6px 10px; border:2px solid #b45309; border-radius:6px; font-family:inherit; font-size:0.88rem; background:#fffdf8; color:#271306;" />
+        </div>
+      </div>
+    `;
+    col.appendChild(nameGroup);
+
+    const custNameInput = nameGroup.querySelector('#cust-input-name');
+    const custClassInput = nameGroup.querySelector('#cust-input-class');
+    custNameInput.value = custDraft.studentName || '';
+    custClassInput.value = custDraft.studentClass || '';
+    custNameInput.addEventListener('input', () => {
+      custDraft.studentName = custNameInput.value;
+    });
+    custClassInput.addEventListener('input', () => {
+      custDraft.studentClass = custClassInput.value;
+    });
+
     const addPillGroup = (title, field, list) => {
       const g = document.createElement('div');
       g.className = 'cust-group';
@@ -2659,8 +2719,8 @@
         b.onclick = () => {
           SoundFX.click();
           custDraft[field] = opt.val;
-          if (field === 'hairStyle' && custDraft.hatColor) {
-            // Auto-remove hat when picking a hairstyle so player sees it clearly!
+          if (field === 'hairStyle' && custDraft.hatColor && !['headphones', 'catears', 'crown'].includes(custDraft.hatColor)) {
+            // Auto-remove full cap/straw hat when picking a hairstyle so player sees it clearly
             custDraft.hatColor = '';
           }
           buildCustomizerUI();
@@ -2695,15 +2755,16 @@
       col.appendChild(g);
     };
 
-    addPillGroup('💇 ทรงผม (Hairstyle)', 'hairStyle', CUSTOM_OPTIONS.hairStyle);
-    addSwatchGroup('🎨 สีผม (Hair Color)', 'hairColor', CUSTOM_OPTIONS.hairColor);
-    addPillGroup('😊 ใบหน้าและแว่นตา (Face)', 'faceStyle', CUSTOM_OPTIONS.faceStyle);
+    addPillGroup('💇 ทรงผม 2.5D (Hairstyle — 10 สไตล์)', 'hairStyle', CUSTOM_OPTIONS.hairStyle);
+    addSwatchGroup('🎨 สีผม (Hair Color — 10 เฉดสี)', 'hairColor', CUSTOM_OPTIONS.hairColor);
+    addPillGroup('😊 ใบหน้าและแว่นตา (Face & Eyewear — 8 สไตล์)', 'faceStyle', CUSTOM_OPTIONS.faceStyle);
     addSwatchGroup('🧑 สีผิว (Skin Tone)', 'skin', CUSTOM_OPTIONS.skin);
-    addPillGroup('👕 รูปแบบเสื้อ (Shirt Style)', 'shirtStyle', CUSTOM_OPTIONS.shirtStyle);
-    addSwatchGroup('🎨 สีเสื้อ (Shirt Color)', 'shirtColor', CUSTOM_OPTIONS.shirtColor);
-    addSwatchGroup('👖 สีกางเกง (Pants Color)', 'pantsColor', CUSTOM_OPTIONS.pantsColor);
+    addPillGroup('👕 สไตล์ชุดแต่งกาย (Outfit Style — 8 สไตล์)', 'shirtStyle', CUSTOM_OPTIONS.shirtStyle);
+    addSwatchGroup('🎨 สีชุดหลัก (Outfit Color)', 'shirtColor', CUSTOM_OPTIONS.shirtColor);
+    addSwatchGroup('👖 สีกางเกง / เอี๊ยม (Pants Color)', 'pantsColor', CUSTOM_OPTIONS.pantsColor);
     addSwatchGroup('👟 สีรองเท้า (Shoes Color)', 'shoesColor', CUSTOM_OPTIONS.shoesColor);
-    addSwatchGroup('🧢 หมวก (Hat — กด ✕ เพื่อไม่ใส่หมวก)', 'hatColor', CUSTOM_OPTIONS.hatColor);
+    addPillGroup('🎩 เครื่องประดับศีรษะพิเศษ (Special Headgear)', 'hatColor', CUSTOM_OPTIONS.hatStylePills);
+    addSwatchGroup('🧢 หมวกแก๊ปสีต่าง ๆ (Colored Caps — กด ✕ เพื่อถอด)', 'hatColor', CUSTOM_OPTIONS.hatColor);
   }
 
   function randomizeProfile(target) {
@@ -2716,10 +2777,15 @@
     target.shirtColor = pick(CUSTOM_OPTIONS.shirtColor);
     target.pantsColor = pick(CUSTOM_OPTIONS.pantsColor);
     target.shoesColor = pick(CUSTOM_OPTIONS.shoesColor);
-    target.hatColor = Math.random() < 0.65 ? '' : pick(CUSTOM_OPTIONS.hatColor);
+    const allHats = [...CUSTOM_OPTIONS.hatStylePills, ...CUSTOM_OPTIONS.hatColor];
+    target.hatColor = Math.random() < 0.55 ? '' : pick(allHats);
   }
 
   function openCustomizerModal() {
+    if (!state.started) {
+      if (inStudentName && inStudentName.value.trim()) setupProfile.studentName = inStudentName.value.trim();
+      if (inStudentClass && inStudentClass.value.trim()) setupProfile.studentClass = inStudentClass.value.trim();
+    }
     custDraft = state.started ? { ...DEFAULT_PROFILE, ...state.profile } : { ...DEFAULT_PROFILE, ...setupProfile };
     custDirIdx = 0;
     openModal('modal-customize');
@@ -2747,16 +2813,22 @@
   };
   document.getElementById('btn-cust-save').onclick = () => {
     SoundFX.questComplete();
+    custDraft.studentName = (custDraft.studentName || '').trim() || DEFAULT_PROFILE.studentName;
+    custDraft.studentClass = (custDraft.studentClass || '').trim() || DEFAULT_PROFILE.studentClass;
     Object.assign(setupProfile, custDraft);
+    if (inStudentName) inStudentName.value = custDraft.studentName;
+    if (inStudentClass) inStudentClass.value = custDraft.studentClass;
+
     if (state.started) {
       Object.assign(state.profile, custDraft);
       applyPlayerAppearance(state.profile);
       refreshHudAvatar();
+      updateHUD();
       saveGame();
-      showToast('✨ บันทึกลุคตัวละครใหม่เรียบร้อยแล้ว!', true);
+      showToast(`✨ บันทึกชื่อ "${state.profile.studentName}" และชุดแต่งกาย 2.5D เรียบร้อยแล้ว!`, true);
     } else {
       renderSetupAvatar();
-      showToast('✨ แต่งตัวละครเรียบร้อย! กดเริ่มผจญภัยได้เลย', true);
+      showToast(`✨ บันทึกชื่อ "${setupProfile.studentName}" และชุดแต่งกายเรียบร้อย!`, true);
     }
     closeAllModals();
   };
@@ -2769,6 +2841,8 @@
     renderSetupAvatar();
   };
   document.getElementById('hud-avatar').onclick = openCustomizerModal;
+  const hudPlayerNameEl = document.getElementById('hud-player-name');
+  if (hudPlayerNameEl) hudPlayerNameEl.onclick = openCustomizerModal;
   document.getElementById('btn-open-customizer-help').onclick = openCustomizerModal;
 
   function readSetupInputsInto(targetProfile) {
