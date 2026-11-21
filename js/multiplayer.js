@@ -35,6 +35,8 @@ window.Multiplayer = (function () {
   const chatLog = []; // { id, name, text, time, system }
   const coopUnits = new Set(); // Shared online units when Co-op mode is ON
   let lastChatSeq = 0;
+  let lastAdminCmdId = '';
+  let roomJoinedAt = 0;
 
   // Callbacks wired by main.js
   let hooks = {
@@ -42,8 +44,20 @@ window.Multiplayer = (function () {
     onCoopUnitUnlocked: () => {},
     onChatMessage: () => {},
     onStatusChange: () => {},
-    onToast: () => {}
+    onToast: () => {},
+    onAdminCommand: () => {}
   };
+
+  function handleIncomingAdminCmd(cmd) {
+    if (!cmd || !cmd.cmdId || cmd.cmdId === lastAdminCmdId) return;
+    if (cmd.ts && roomJoinedAt && cmd.ts < roomJoinedAt - 3000) return;
+    lastAdminCmdId = cmd.cmdId;
+    if (cmd.action === 'reset_coop') {
+      coopUnits.clear();
+    }
+    if (cmd.targetId && cmd.targetId !== myId) return;
+    hooks.onAdminCommand(cmd);
+  }
 
   function nowTimeStr() {
     const d = new Date();
@@ -51,6 +65,10 @@ window.Multiplayer = (function () {
   }
 
   function pushChat(entry) {
+    if (entry && entry.adminCmd) {
+      handleIncomingAdminCmd(entry.adminCmd);
+      if (entry.silentAdmin) return;
+    }
     if (entry.msgId && chatLog.some((c) => c.msgId === entry.msgId)) return;
     chatLog.push(entry);
     if (chatLog.length > 60) chatLog.shift();
@@ -409,8 +427,17 @@ window.Multiplayer = (function () {
     const playersRef = fbDb.ref(fbRoomPath + '/players');
     const coopRef = fbDb.ref(fbRoomPath + '/coopUnits');
     const chatsRef = fbDb.ref(fbRoomPath + '/chats').limitToLast(40);
+    const adminCmdRef = fbDb.ref(fbRoomPath + '/adminCmd');
     const connRef = fbDb.ref('.info/connected');
     fbMyPlayerRef = playersRef.child(myId);
+    roomJoinedAt = Date.now();
+
+    const onAdminVal = (snap) => {
+      const cmd = snap.val();
+      if (cmd) handleIncomingAdminCmd(cmd);
+    };
+    adminCmdRef.on('value', onAdminVal);
+    fbListeners.push(() => adminCmdRef.off('value', onAdminVal));
 
     const onConn = (snap) => {
       if (snap.val() === true) {
@@ -466,7 +493,7 @@ window.Multiplayer = (function () {
       const p = hooks.getLocalPlayer();
       if (!p) return;
       const now = Date.now();
-      const sig = `${p.x},${p.y},${p.dir},${p.frame},${p.completedUnits.length},${p.bytes},${p.zone},${p.name},${p.hairStyle},${p.hair},${p.faceStyle},${p.skin},${p.shirt},${p.shirtStyle},${p.pants},${p.shoes},${p.hat}`;
+      const sig = `${p.x},${p.y},${p.dir},${p.frame},${p.completedUnits.length},${p.bytes},${p.zone},${p.insideBuildingId || ''},${p.name},${p.hairStyle},${p.hair},${p.faceStyle},${p.skin},${p.shirt},${p.shirtStyle},${p.pants},${p.shoes},${p.hat},${p.isTeacher ? 1 : 0}`;
       if (!force && sig === fbLastSentSig && now - fbLastSentAt < 5000) return;
       fbLastSentSig = sig;
       fbLastSentAt = now;
@@ -474,6 +501,8 @@ window.Multiplayer = (function () {
         id: myId,
         name: p.name,
         studentClass: p.studentClass,
+        isTeacher: !!p.isTeacher,
+        insideBuildingId: p.insideBuildingId || null,
         x: p.x,
         y: p.y,
         dir: p.dir,
@@ -569,6 +598,69 @@ window.Multiplayer = (function () {
     }
   }
 
+  // ==================== TEACHER ADMIN REMOTE CLASSROOM COMMANDS ====================
+  function sendAdminCommand(payload) {
+    const me = hooks.getLocalPlayer();
+    const cmd = {
+      ...payload,
+      cmdId: 'adm_' + myId + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+      senderId: myId,
+      teacherName: (me && me.name) || 'ครูผู้สอน',
+      ts: Date.now()
+    };
+
+    // Execute locally via handleIncomingAdminCmd if applicable
+    handleIncomingAdminCmd(cmd);
+
+    // 1. Direct Firebase Realtime DB broadcast node (instant for 40-100 players!)
+    if (mode === 'firebase' && fbDb && connected) {
+      fbDb.ref(fbRoomPath + '/adminCmd').set(cmd).catch(() => {});
+      if (cmd.action === 'unlock_unit' && cmd.unit) {
+        coopUnits.add(Number(cmd.unit));
+        fbDb.ref(fbRoomPath + '/coopUnits/' + cmd.unit).set(cmd.teacherName).catch(() => {});
+      } else if (cmd.action === 'unlock_all') {
+        for (let u = 1; u <= 18; u++) {
+          coopUnits.add(u);
+          fbDb.ref(fbRoomPath + '/coopUnits/' + u).set(cmd.teacherName).catch(() => {});
+        }
+      } else if (cmd.action === 'reset_coop') {
+        coopUnits.clear();
+        fbDb.ref(fbRoomPath + '/coopUnits').remove().catch(() => {});
+      }
+    }
+
+    // 2. Also relay via chat channel so P2P, LAN Server, and Local-Tab rooms all receive the admin command!
+    const entry = {
+      msgId: cmd.cmdId,
+      senderId: myId,
+      name: '👑 ' + cmd.teacherName,
+      text: cmd.chatText || '',
+      time: nowTimeStr(),
+      system: true,
+      adminCmd: cmd,
+      silentAdmin: !cmd.chatText
+    };
+    if (cmd.chatText) pushChat(entry);
+
+    if (mode === 'p2p-host') {
+      Object.values(clientConns).forEach((c) => {
+        if (c.open) c.send({ type: 'chat', entry });
+      });
+    } else if (mode === 'p2p-client' && hostConn && hostConn.open) {
+      hostConn.send({ type: 'chat', entry });
+    } else if (mode === 'lan' && connected) {
+      fetch(`${lanUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room: roomCode, entry })
+      }).catch(() => {});
+    } else if (mode === 'firebase' && fbDb && connected && cmd.chatText) {
+      fbDb.ref(fbRoomPath + '/chats').push(entry).catch(() => {});
+    } else if (mode === 'local-tab' && bc) {
+      bc.postMessage({ type: 'chat', entry });
+    }
+  }
+
   // Smoothly interpolate peer coordinates each animation frame
   function stepInterpolation() {
     Object.values(peers).forEach((p) => {
@@ -643,6 +735,7 @@ window.Multiplayer = (function () {
     buildInviteLink,
     disconnect,
     sendChat,
+    sendAdminCommand,
     notifyUnitCompleted,
     stepInterpolation,
     getPeers() { return Object.values(peers); },

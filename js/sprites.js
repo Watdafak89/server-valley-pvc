@@ -1733,6 +1733,255 @@ window.Sprites = (function () {
     }
   }
 
+  // ==================== 2.5D SIMULATED BUILDING INTERIOR ENVIRONMENT (16x12 TILES = 512x384) ====================
+  const INTERIOR_THEMES = {
+    cottage:       { floor: 'wood',   accent: '#d97706', board: '🏠 บ้านพักนักศึกษาแอดมิน ปวช.', sub: 'เตียงพักผ่อนฟื้นพลังงาน 100% • โต๊ะทบทวนบทเรียน 18 สัปดาห์' },
+    town_hall:     { floor: 'wood',   accent: '#b45309', board: '🌐 สัปดาห์ที่ 1: NOS & Client-Server Network', sub: 'Core Gigabit Switch • Client ⇄ Server vs Peer-to-Peer' },
+    vm_lab:        { floor: 'tech',   accent: '#2563eb', board: '🖥️ สัปดาห์ที่ 2–3: Virtualization (VM) & Server OS', sub: 'Hypervisor Type-2 • RAM/Disk Allocation • Ubuntu Server 24.04 ISO' },
+    core_hall:     { floor: 'tech',   accent: '#059669', board: '⌨️ สัปดาห์ที่ 4–5: Static IP, Linux CLI & chmod', sub: 'Netplan 192.168.1.10/24 • chmod 755 (r=4,w=2,x=1) • sudo/usermod' },
+    raid_barn:     { floor: 'steel',  accent: '#92400e', board: '💽 สัปดาห์ที่ 6: Disk Management & RAID Storage', sub: 'RAID 0 (Speed) • RAID 1 (Mirror) • RAID 5 (Parity) • /etc/fstab' },
+    remote_tower:  { floor: 'tech',   accent: '#7c3aed', board: '🔐 สัปดาห์ที่ 7: Remote Access (SSH & RDP)', sub: 'OpenSSH TCP :22 (Encrypted) • RDP :3389 • Disable Telnet :23' },
+    dhcp_house:    { floor: 'tech',   accent: '#0891b2', board: '📡 สัปดาห์ที่ 8: DHCP Server (D-O-R-A Process)', sub: 'Discover → Offer → Request → Acknowledge • Pool 192.168.1.100–200' },
+    dns_tower:     { floor: 'wood',   accent: '#d97706', board: '📖 สัปดาห์ที่ 9: DNS Server (BIND9 Port 53)', sub: 'valley.local Zone • A Record / CNAME / MX • nslookup & dig' },
+    cron_clock:    { floor: 'brass',  accent: '#ca8a04', board: '⏱️ สัปดาห์ที่ 10: Systemd Services & Cron Jobs', sub: 'systemctl enable/start • htop • crontab: 0 2 * * * (Auto Backup)' },
+    web_market:    { floor: 'brass',  accent: '#db2777', board: '🌍 สัปดาห์ที่ 11: Web Server & Database (LAMP Stack)', sub: 'Apache2/Nginx (:80/:443) • MariaDB (:3306) • VirtualHost' },
+    file_barn:     { floor: 'steel',  accent: '#ea580c', board: '📂 สัปดาห์ที่ 12: File Server (Samba & SFTP)', sub: 'Samba SMB (:445) Linux⇄Windows • SFTP (:22) vs FTP (:21)' },
+    mail_proxy:    { floor: 'brass',  accent: '#dc2626', board: '✉️ สัปดาห์ที่ 13: Squid Proxy & Mail Server', sub: 'Squid Proxy (:3128) ACL/Cache • SMTP (:25) • IMAP (:143) • POP3 (:110)' },
+    win_hall:      { floor: 'azure',  accent: '#0284c7', board: '🪟 สัปดาห์ที่ 14: Windows Server (AD DS, IIS & PowerShell)', sub: 'Active Directory Domain Controller • GPO • IIS Web • PowerShell' },
+    firewall_gate: { floor: 'steel',  accent: '#475569', board: '🛡️ สัปดาห์ที่ 15: Firewall & Server Hardening (UFW)', sub: 'Default Deny Incoming • Allow 22, 53, 80, 443 • Deny Telnet 23' },
+    backup_vault:  { floor: 'steel',  accent: '#16a34a', board: '💾 สัปดาห์ที่ 16: กฎสำรองข้อมูล 3-2-1 & Disaster Recovery', sub: '3 Copies • 2 Media Types • 1 Offsite Cloud • tar.gz / rsync / mysqldump' },
+    log_obs:       { floor: 'tech',   accent: '#0d9488', board: '🔎 สัปดาห์ที่ 17: Server Monitoring & Log Analysis', sub: '/var/log/auth.log • journalctl -u • ss -tulnp • Root Cause Analysis' },
+    grand_hall:    { floor: 'royal',  accent: '#9333ea', board: '🏆 สัปดาห์ที่ 18: สภาแอดมินหลวง (Final Enterprise Audit)', sub: 'บูรณาการครบ 18 สัปดาห์ • ตรวจสอบความพร้อมทั้งหมู่บ้าน Server Valley' }
+  };
+
+  function drawBuildingInterior(ctx, b, isOnline, tick) {
+    const theme = INTERIOR_THEMES[b.id] || INTERIOR_THEMES.town_hall;
+    const rx = 32;   // Interior room left (1*TILE)
+    const ry = 24;   // Interior room top
+    const rw = 448;  // 14*TILE wide (tiles 1..15)
+    const rh = 312;  // Room height
+    const wallH = 76; // 2.5D Back wall vertical height
+    const floorY = ry + wallH;
+    const floorH = rh - wallH;
+    const ol = '#1e120a';
+
+    // 1. 2.5D Outer Diorama Cutaway Drop Shadow & Thick Cutaway Wall Rim
+    fillRoundRect(ctx, rx - 14, ry - 10, rw + 28, rh + 28, 12, 'rgba(0, 0, 0, 0.55)');
+    fillRoundRect(ctx, rx - 8, ry - 6, rw + 16, rh + 14, 8, b.roofDark || '#3b2010', ol, 2.5);
+
+    // 2. 2.5D Back Wall & Side Perspective Walls
+    const wallBase = b.wallColor || '#f5e4c3';
+    const wGrad = ctx.createLinearGradient(rx, ry, rx, floorY);
+    wGrad.addColorStop(0, shadeHex(wallBase, 0.12));
+    wGrad.addColorStop(0.75, wallBase);
+    wGrad.addColorStop(1, shadeHex(wallBase, -0.22));
+    fillRoundRect(ctx, rx, ry, rw, wallH + 6, 4, wGrad, ol, 2);
+
+    // Waist-high wainscoting panel & 3D baseboard along back wall
+    ctx.fillStyle = shadeHex(b.roofColor || theme.accent, -0.25);
+    ctx.fillRect(rx + 2, floorY - 22, rw - 4, 18);
+    ctx.fillStyle = '#3b2110';
+    ctx.fillRect(rx + 2, floorY - 5, rw - 4, 6);
+
+    // 3. Themed 2.5D Interior Floor (tiles 1..15, y = 100..336)
+    const fGrad = ctx.createLinearGradient(rx, floorY, rx, floorY + floorH);
+    if (theme.floor === 'wood') {
+      fGrad.addColorStop(0, '#d9a15b');
+      fGrad.addColorStop(1, '#a86f32');
+    } else if (theme.floor === 'tech') {
+      fGrad.addColorStop(0, '#1e293b');
+      fGrad.addColorStop(1, '#0f172a');
+    } else if (theme.floor === 'steel') {
+      fGrad.addColorStop(0, '#475569');
+      fGrad.addColorStop(1, '#1e293b');
+    } else if (theme.floor === 'azure') {
+      fGrad.addColorStop(0, '#e0f2fe');
+      fGrad.addColorStop(1, '#bae6fd');
+    } else if (theme.floor === 'royal') {
+      fGrad.addColorStop(0, '#3b0764');
+      fGrad.addColorStop(1, '#1e1b4b');
+    } else {
+      fGrad.addColorStop(0, '#f3e5ab');
+      fGrad.addColorStop(1, '#d4b475');
+    }
+    ctx.fillStyle = fGrad;
+    ctx.fillRect(rx + 2, floorY, rw - 4, floorH - 2);
+
+    // Floor Grid / Planks + Animated Glowing Data Cable Trenches
+    ctx.save();
+    ctx.strokeStyle = (theme.floor === 'tech' || theme.floor === 'steel' || theme.floor === 'royal')
+      ? 'rgba(148, 163, 184, 0.16)'
+      : 'rgba(60, 30, 10, 0.14)';
+    ctx.lineWidth = 1;
+    for (let gx = rx + 32; gx < rx + rw; gx += 32) {
+      ctx.beginPath(); ctx.moveTo(gx, floorY); ctx.lineTo(gx, floorY + floorH); ctx.stroke();
+    }
+    for (let gy = floorY + 24; gy < floorY + floorH; gy += 24) {
+      ctx.beginPath(); ctx.moveTo(rx + 2, gy); ctx.lineTo(rx + rw - 2, gy); ctx.stroke();
+    }
+
+    // Glowing Sub-Floor Fiber-Optic Trench running to the Main Server Rack at tx=10!
+    if (b.id !== 'cottage') {
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+      ctx.fillRect(160, floorY + 42, 195, 12);
+      ctx.fillRect(322, floorY + 12, 12, 42);
+      const pulseX = 164 + ((tick * 2.2) % 180);
+      ctx.fillStyle = isOnline ? '#4ade80' : '#38bdf8';
+      ctx.fillRect(pulseX, floorY + 46, 18, 4);
+      ctx.fillRect(326, floorY + 16 + ((tick * 1.5) % 28), 4, 10);
+    }
+
+    // Center Decorative Carpet / Anti-Static Mat
+    const rugCol = theme.accent;
+    fillRoundRect(ctx, 168, floorY + 62, 176, 98, 8, shadeHex(rugCol, -0.25), '#fde047', 1.5);
+    fillRoundRect(ctx, 176, floorY + 70, 160, 82, 5, rugCol);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+    ctx.font = 'bold 11px Kanit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(b.shortName.toUpperCase(), 256, floorY + 115);
+    ctx.restore();
+
+    // 4. 2.5D Back-Wall Interactive Knowledge Whiteboard / NOC Architecture Screen (around tx=8, ty=2)
+    const bx = 148;
+    const by = ry + 10;
+    const bw = 216;
+    const bh = 54;
+    fillRoundRect(ctx, bx + 2, by + 3, bw, bh, 5, 'rgba(0,0,0,0.35)');
+    fillRoundRect(ctx, bx, by, bw, bh, 5, '#0f172a', '#d97706', 2.2);
+    // Glowing screen header
+    fillRoundRect(ctx, bx + 4, by + 4, bw - 8, 18, 3, theme.accent);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 10.5px Kanit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(theme.board, bx + bw / 2, by + 17);
+    ctx.fillStyle = '#bae6fd';
+    ctx.font = '9.5px Kanit, sans-serif';
+    ctx.fillText(theme.sub, bx + bw / 2, by + 34);
+    ctx.fillStyle = isOnline ? '#4ade80' : '#fde047';
+    ctx.font = 'bold 9px Kanit, sans-serif';
+    ctx.fillText(
+      isOnline ? '🟢 SYSTEM ONLINE — กด [E] ที่กระดานนี้เพื่อเปิดคู่มือบทเรียน' : '🟡 กด [E] ที่กระดานเพื่ออ่านคู่มือ • คุยกับ NPC & ทำแล็บที่ตู้เซิร์ฟเวอร์',
+      bx + bw / 2,
+      by + 48
+    );
+
+    // 5. Left & Right Back-Wall Windows with 2.5D Diagonal Sunlight Beams
+    [rx + 28, rx + rw - 82].forEach((wx) => {
+      fillRoundRect(ctx, wx, ry + 14, 54, 42, 4, '#38bdf8', '#4a2511', 2.2);
+      fillRoundRect(ctx, wx + 4, ry + 18, 46, 34, 2, '#bae6fd');
+      // Window mullions
+      ctx.fillStyle = '#4a2511';
+      ctx.fillRect(wx + 26, ry + 14, 2, 42);
+      ctx.fillRect(wx, ry + 34, 54, 2);
+      // Diagonal 2.5D Sunbeam projected onto the room floor
+      ctx.save();
+      const beam = ctx.createLinearGradient(wx, ry + 56, wx + 40, floorY + 95);
+      beam.addColorStop(0, 'rgba(254, 249, 195, 0.24)');
+      beam.addColorStop(1, 'rgba(254, 249, 195, 0)');
+      ctx.fillStyle = beam;
+      ctx.beginPath();
+      ctx.moveTo(wx + 2, floorY);
+      ctx.lineTo(wx + 52, floorY);
+      ctx.lineTo(wx + 86, floorY + 95);
+      ctx.lineTo(wx + 22, floorY + 95);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // 6. Building-Specific 2.5D Simulated Environment Equipment & Furniture
+    const drawWorkstationDesk = (dx, dy, label, screenCol) => {
+      fillEllipse(ctx, dx + 34, dy + 34, 34, 8, 'rgba(0,0,0,0.28)');
+      // 3D Desk top & side thickness
+      fillRoundRect(ctx, dx, dy + 10, 68, 22, 3, '#7c431e', ol, 1.3);
+      fillRoundRect(ctx, dx, dy + 6, 68, 18, 3, '#b87338', ol, 1.2);
+      // Dual 2.5D Monitors on desk
+      [dx + 8, dx + 36].forEach((mx, mi) => {
+        fillRoundRect(ctx, mx + 8, dy + 10, 6, 5, 1, '#334155');
+        fillRoundRect(ctx, mx, dy - 6, 22, 16, 2, '#0f172a', '#475569', 1.1);
+        fillRoundRect(ctx, mx + 2, dy - 4, 18, 12, 1, mi === 0 ? screenCol : '#1e293b');
+        // Animated code lines on monitor
+        ctx.fillStyle = '#69f0ae';
+        ctx.fillRect(mx + 4, dy - 2, 10, 1.5);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(mx + 4, dy + 1, 13, 1.5);
+        ctx.fillStyle = '#fde047';
+        ctx.fillRect(mx + 4, dy + 4, 8, 1.5);
+      });
+      if (label) {
+        ctx.fillStyle = '#fffbeb';
+        ctx.font = 'bold 8.5px Kanit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, dx + 34, dy + 20);
+      }
+    };
+
+    const drawAuxRackArray = (ax, ay, count, tag) => {
+      for (let i = 0; i < count; i++) {
+        const rx0 = ax + i * 28;
+        fillEllipse(ctx, rx0 + 13, ay + 38, 13, 4, 'rgba(0,0,0,0.32)');
+        fillRoundRect(ctx, rx0, ay, 24, 38, 2, '#1e293b', '#0f172a', 1.3);
+        for (let bay = 0; bay < 4; bay++) {
+          fillRoundRect(ctx, rx0 + 3, ay + 4 + bay * 8, 18, 6, 1, '#090d16');
+          const ledOn = ((tick + i * 7 + bay * 3) % 16) < 10;
+          fillEllipse(ctx, rx0 + 6, ay + 7 + bay * 8, 1.4, 1.4, isOnline ? '#4ade80' : (ledOn ? '#38bdf8' : '#ef4444'));
+          ctx.fillStyle = '#334155';
+          ctx.fillRect(rx0 + 10, ay + 6 + bay * 8, 9, 2);
+        }
+      }
+      if (tag) {
+        fillRoundRect(ctx, ax, ay - 13, count * 28 - 4, 12, 2, '#0f172a', theme.accent, 1);
+        ctx.fillStyle = '#e0f2fe';
+        ctx.font = 'bold 8.5px Kanit, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(tag, ax + (count * 28 - 4) / 2, ay - 4);
+      }
+    };
+
+    if (b.id === 'cottage') {
+      // Cozy 2.5D Bed at right side (tx=10, ty=4)
+      const bedX = 310;
+      const bedY = floorY + 14;
+      fillEllipse(ctx, bedX + 32, bedY + 50, 34, 9, 'rgba(0,0,0,0.28)');
+      fillRoundRect(ctx, bedX, bedY, 64, 52, 5, '#7c431e', ol, 1.5);
+      fillRoundRect(ctx, bedX + 4, bedY + 6, 56, 42, 4, '#fef3c7');
+      // Pillow & Cozy Quilt
+      fillRoundRect(ctx, bedX + 10, bedY + 8, 44, 12, 4, '#ffffff', '#cbd5e1', 1);
+      fillRoundRect(ctx, bedX + 4, bedY + 22, 56, 26, 4, '#ef4444', '#991b1b', 1.2);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px Kanit, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🛏️ เตียงพักผ่อน [E]', bedX + 32, bedY + 38);
+      // Home Study Desk on left
+      drawWorkstationDesk(84, floorY + 18, 'โต๊ะทบทวน ปวช.', '#0284c7');
+    } else if (b.id === 'raid_barn' || b.id === 'backup_vault' || b.id === 'file_barn') {
+      drawAuxRackArray(52, floorY + 8, 2, b.id === 'raid_barn' ? 'RAID 1/5 Array' : b.id === 'backup_vault' ? '3-2-1 Vault Pods' : 'Samba NAS');
+      drawWorkstationDesk(372, floorY + 26, 'Storage Console', '#059669');
+    } else if (b.id === 'win_hall') {
+      drawWorkstationDesk(52, floorY + 16, 'AD DS Domain Ctrl', '#0284c7');
+      drawWorkstationDesk(372, floorY + 24, 'IIS & PowerShell', '#0369a1');
+    } else if (b.id === 'firewall_gate' || b.id === 'log_obs') {
+      drawAuxRackArray(52, floorY + 8, 2, b.id === 'firewall_gate' ? 'UFW Filter Nodes' : 'Syslog Collectors');
+      drawWorkstationDesk(372, floorY + 24, 'SOC Monitor', '#0d9488');
+    } else if (b.id === 'grand_hall') {
+      drawAuxRackArray(50, floorY + 8, 2, 'Linux Cluster');
+      drawAuxRackArray(384, floorY + 8, 2, 'Windows Cluster');
+    } else {
+      drawWorkstationDesk(52, floorY + 16, 'Admin Terminal', '#0f172a');
+      drawAuxRackArray(384, floorY + 10, 2, 'Server Cluster');
+    }
+
+    // 7. Bottom Exit Doorway Threshold & Glowing Welcome Mat (at tx=8, ty=10 => x=256, y=316)
+    const exitX = 220;
+    const exitY = floorY + floorH - 26;
+    fillRoundRect(ctx, exitX - 6, exitY - 4, 84, 28, 6, 'rgba(253, 224, 71, 0.25)');
+    fillRoundRect(ctx, exitX, exitY, 72, 22, 4, '#92400e', '#fde047', 1.8);
+    ctx.fillStyle = '#fef9c3';
+    ctx.font = 'bold 10.5px Kanit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🚪 ทางออก [E]', exitX + 36, exitY + 15);
+  }
+
   return {
     drawCharacter,
     getPortrait,
@@ -1740,6 +1989,7 @@ window.Sprites = (function () {
     drawTile,
     drawTree,
     drawBuilding,
+    drawBuildingInterior,
     drawServerRack,
     drawCrate,
     drawFountain,

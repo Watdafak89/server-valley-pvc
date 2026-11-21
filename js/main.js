@@ -62,6 +62,16 @@
   let returnToLabUnit = null;
   let currentLabUnit = null;
 
+  // Teacher Admin Mode State
+  const TEACHER_PIN_KEY = 'sv_teacher_pin';
+  const TEACHER_SESSION_KEY = 'sv_teacher_admin_on';
+  let isTeacherAdmin = false;
+  let teacherGodSpeed = false;
+  let announceTimer = null;
+  try {
+    if (sessionStorage.getItem(TEACHER_SESSION_KEY) === '1') isTeacherAdmin = true;
+  } catch (e) {}
+
   // Input State & Movement Control Mode ('both' | 'wasd' | 'arrows')
   const CONTROL_MODE_KEY = 'sv_control_mode';
   let controlMode = 'both';
@@ -122,6 +132,7 @@
 
   // Dialog State
   let dialogQueue = null; // { speaker, role, style, lines[], index, choices?, onEnd? }
+  let doorCooldown = 0;
 
   function createFreshState() {
     return {
@@ -133,6 +144,8 @@
       energy: 100,
       maxEnergy: 100,
       speedBoostTimer: 0,
+      insideBuildingId: null,
+      outsidePos: null,
       player: {
         x: 7 * TILE,
         y: 10 * TILE,
@@ -310,7 +323,92 @@
     return st.units.every((u) => isUnitOnlineInVillage(u));
   }
 
+  function getBuildingById(id) {
+    return GD.BUILDINGS.find((b) => b.id === id) || null;
+  }
+
+  function getBuildingForUnit(unit) {
+    return GD.BUILDINGS.find((b) => b.units && b.units.includes(Number(unit))) || null;
+  }
+
+  function getInteriorLayout(buildingId) {
+    const b = getBuildingById(buildingId);
+    if (!b) return null;
+    const npc = GD.NPCS.find((n) => n.units && b.units.some((u) => n.units.includes(u))) || null;
+    const station = GD.STATIONS.find((s) => s.units && b.units.some((u) => s.units.includes(u))) || null;
+    // Find if any quest in this building requires a tool item so we provide a Lab Supply Crate inside!
+    const qWithItem = GD.QUESTS.find((q) => b.units.includes(q.unit) && q.requiredItem);
+    const supplyItemId = qWithItem ? qWithItem.requiredItem : null;
+    return {
+      building: b,
+      npc,
+      station,
+      supplyItemId,
+      isCottage: b.id === 'cottage',
+      npcPos: { x: 6 * TILE, y: 4.1 * TILE },
+      stationPos: { x: 10 * TILE, y: 4.1 * TILE },
+      supplyPos: { x: 3.3 * TILE, y: 5.5 * TILE },
+      boardPos: { x: 8 * TILE, y: 3.1 * TILE },
+      bedPos: { x: 10.2 * TILE, y: 4.2 * TILE },
+      exitPos: { x: 7.5 * TILE, y: 9.6 * TILE }
+    };
+  }
+
+  function enterBuilding(buildingId) {
+    const b = getBuildingById(buildingId);
+    if (!b) return;
+    closeDialog();
+    closeAllModals();
+    state.outsidePos = {
+      x: (b.tx + Math.floor(b.tw / 2)) * TILE - 16,
+      y: (b.ty + b.th) * TILE + 8
+    };
+    state.insideBuildingId = b.id;
+    state.player.x = 7.5 * TILE;
+    state.player.y = 8.1 * TILE;
+    state.player.dir = 'up';
+    doorCooldown = 0.5;
+    SoundFX.click();
+    spawnParticles(state.player.x + 16, state.player.y + 16, '#fde047', 18);
+    updateHUD();
+    saveGame();
+    const layout = getInteriorLayout(b.id);
+    if (layout && layout.npc) {
+      showToast(`🏠 เข้าสู่ "${b.fullName}" — พบ ${layout.npc.name} และตู้ปฏิบัติการด้านใน!`, true);
+    } else {
+      showToast(`🏠 เข้าสู่ "${b.fullName}"`, true);
+    }
+  }
+
+  function exitBuilding() {
+    const b = getBuildingById(state.insideBuildingId);
+    closeDialog();
+    closeAllModals();
+    if (state.outsidePos && typeof state.outsidePos.x === 'number') {
+      state.player.x = state.outsidePos.x;
+      state.player.y = state.outsidePos.y;
+    } else if (b) {
+      state.player.x = (b.tx + Math.floor(b.tw / 2)) * TILE - 16;
+      state.player.y = (b.ty + b.th) * TILE + 8;
+    } else {
+      state.player.x = 7 * TILE;
+      state.player.y = 10 * TILE;
+    }
+    state.player.dir = 'down';
+    state.insideBuildingId = null;
+    doorCooldown = 0.5;
+    SoundFX.click();
+    spawnParticles(state.player.x + 16, state.player.y + 16, '#86efac', 16);
+    updateHUD();
+    saveGame();
+    showToast(`🚪 ออกจากอาคารกลับสู่หมู่บ้าน Server Valley`, true);
+  }
+
   function getZoneName(tx, ty) {
+    if (state.insideBuildingId) {
+      const b = getBuildingById(state.insideBuildingId);
+      if (b) return `🏠 ภายใน: ${b.shortName}`;
+    }
     if (tx >= 36 && tx <= 47 && ty >= 22 && ty <= 31) return 'จัตุรัสกลางหมู่บ้าน';
     if (tx < 42 && ty < 27) return 'โซน 1: หมู่บ้านพื้นฐาน (NW)';
     if (tx >= 42 && ty < 27) return 'โซน 2: ย่านบริการเครือข่าย (NE)';
@@ -338,6 +436,28 @@
       [px + 25, py + 34]
     ];
 
+    // Inside a 2.5D Building Interior Room (16x12 tiles = 512x384)
+    if (state.insideBuildingId) {
+      const layout = getInteriorLayout(state.insideBuildingId);
+      for (const [cx, cy] of points) {
+        // Outer room walls (walkable floor is x: 46..466, y: 108..324)
+        if (cx < 48 || cx > 464 || cy < 110 || cy > 324) return true;
+        // Interior NPC hitbox
+        if (layout && layout.npc) {
+          if (Math.abs(cx - (layout.npcPos.x + 16)) < 14 && Math.abs(cy - (layout.npcPos.y + 24)) < 11) return true;
+        }
+        // Interior Server Rack hitbox
+        if (layout && layout.station) {
+          if (Math.abs(cx - (layout.stationPos.x + 16)) < 15 && Math.abs(cy - (layout.stationPos.y + 20)) < 12) return true;
+        }
+        // Interior Supply Crate hitbox
+        if (layout && layout.supplyItemId) {
+          if (Math.abs(cx - (layout.supplyPos.x + 16)) < 13 && Math.abs(cy - (layout.supplyPos.y + 18)) < 10) return true;
+        }
+      }
+      return false;
+    }
+
     for (const [cx, cy] of points) {
       const tx = Math.floor(cx / TILE);
       const ty = Math.floor(cy / TILE);
@@ -355,26 +475,16 @@
       // Trees O(1) lookup & Central Plaza Fountain
       if (treeLookup.has(tx + ',' + ty)) return true;
       if ((tx === 41 || tx === 42) && ty === 24) return true;
-
-      // Stations (Server Racks)
-      for (const st of GD.STATIONS) {
-        if (tx === st.tx && ty === st.ty) return true;
-      }
-
-      // NPCs
-      for (const npc of GD.NPCS) {
-        if (tx === npc.tx && ty === npc.ty) return true;
-      }
     }
     return false;
   }
 
-  // Find nearest interactable object within reach
+  // Find nearest interactable object within reach (supports both Interior Rooms & Outdoor Village!)
   function findNearestInteractable() {
     const px = state.player.x + 16;
     const py = state.player.y + 22;
     let best = null;
-    let bestDist = 58;
+    let bestDist = 64;
 
     const consider = (kind, obj, wx, wy, label) => {
       const d = Math.hypot(px - wx, py - wy);
@@ -384,14 +494,45 @@
       }
     };
 
-    GD.NPCS.forEach((n) => consider('npc', n, n.tx * TILE + 16, n.ty * TILE + 16, `คุยกับ ${n.name}`));
-    GD.STATIONS.forEach((s) => consider('station', s, s.tx * TILE + 16, s.ty * TILE + 16, `ตรวจสอบ ${s.name}`));
+    if (state.insideBuildingId) {
+      const layout = getInteriorLayout(state.insideBuildingId);
+      if (!layout) return null;
+      if (layout.npc) {
+        consider('npc', layout.npc, layout.npcPos.x + 16, layout.npcPos.y + 16, `คุยกับ ${layout.npc.name}`);
+      }
+      if (layout.station) {
+        consider('station', layout.station, layout.stationPos.x + 16, layout.stationPos.y + 16, `ปฏิบัติการ ${layout.station.name}`);
+      }
+      if (layout.supplyItemId && GD.ITEMS[layout.supplyItemId]) {
+        const it = GD.ITEMS[layout.supplyItemId];
+        consider('interior_supply', { itemId: layout.supplyItemId }, layout.supplyPos.x + 16, layout.supplyPos.y + 16, `เบิกอุปกรณ์แล็บ: ${it.name}`);
+      }
+      if (layout.isCottage) {
+        consider('special', { kind: 'bed' }, layout.bedPos.x + 16, layout.bedPos.y + 16, 'พักผ่อนที่เตียง (ฟื้นพลังงานเต็ม 100%)');
+      }
+      const boardUnit = (layout.building.units && layout.building.units[0]) || 1;
+      consider('interior_board', { unit: boardUnit }, layout.boardPos.x, layout.boardPos.y + 16, `อ่านกระดานความรู้ประจำอาคาร (สัปดาห์ที่ ${layout.building.units.join(', ') || 1})`);
+      consider('exit_door', layout.building, layout.exitPos.x + 16, layout.exitPos.y + 12, '🚪 ออกจากอาคารกลับสู่หมู่บ้าน');
+      return best;
+    }
+
+    // Outside in the Village: Building Entrance Doors!
+    GD.BUILDINGS.forEach((b) => {
+      const doorWx = (b.tx + b.tw / 2) * TILE;
+      const doorWy = (b.ty + b.th) * TILE;
+      consider('building_door', b, doorWx, doorWy - 2, `🚪 เข้าสู่อาคาร: ${b.shortName}`);
+    });
+
     GD.CRATES.forEach((c) => {
       if (!state.openedCrates.includes(c.id)) {
         consider('crate', c, c.tx * TILE + 16, c.ty * TILE + 16, `เก็บ ${c.label}`);
       }
     });
-    GD.SPECIAL_PROPS.forEach((sp) => consider('special', sp, sp.tx * TILE + 16, sp.ty * TILE + 16, sp.label));
+    GD.SPECIAL_PROPS.forEach((sp) => {
+      if (sp.kind !== 'bed') {
+        consider('special', sp, sp.tx * TILE + 16, sp.ty * TILE + 16, sp.label);
+      }
+    });
 
     return best;
   }
@@ -406,7 +547,42 @@
 
     const target = findNearestInteractable();
     if (!target) {
-      showToast('เดินเข้าใกล้ชาวบ้าน ตู้เซิร์ฟเวอร์ หรือกล่องไอเท็ม แล้วกด E เพื่อโต้ตอบ');
+      showToast(state.insideBuildingId
+        ? 'เดินเข้าใกล้ผู้เชี่ยวชาญ ตู้เซิร์ฟเวอร์ กล่องอุปกรณ์ หรือประตูทางออก แล้วกด E'
+        : 'เดินไปหน้าประตูอาคารเรียนของแต่ละสัปดาห์แล้วกด E เพื่อเข้าไปรับเควสและทำแล็บด้านใน!');
+      return;
+    }
+
+    if (target.kind === 'building_door') {
+      enterBuilding(target.obj.id);
+      return;
+    }
+
+    if (target.kind === 'exit_door') {
+      exitBuilding();
+      return;
+    }
+
+    if (target.kind === 'interior_board') {
+      openCodexModal(target.obj.unit || 1);
+      return;
+    }
+
+    if (target.kind === 'interior_supply') {
+      const itemId = target.obj.itemId;
+      const item = GD.ITEMS[itemId];
+      if (!item) return;
+      if (!hasItem(itemId)) {
+        addItem(itemId, 1);
+        SoundFX.pickup();
+        spawnParticles(target.wx, target.wy, '#ffd54f', 20);
+        showToast(`🎒 เบิกอุปกรณ์ "${item.name}" สำหรับทำแล็บเรียบร้อยแล้ว!`, true);
+      } else {
+        SoundFX.click();
+        showToast(`✅ คุณมี "${item.name}" อยู่ในกระเป๋าแล้ว นำไปกด E ที่ตู้เซิร์ฟเวอร์ได้เลย!`, true);
+      }
+      updateHUD();
+      saveGame();
       return;
     }
 
@@ -430,7 +606,7 @@
         state.minutes = 7 * 60;
         state.energy = state.maxEnergy;
         spawnParticles(state.player.x + 16, state.player.y + 12, '#80ffdb', 22);
-        showToast(`🌙 พักผ่อนเต็มอิ่ม! เช้าวันที่ ${state.day} — พลังงานฟื้นเต็ม 100 ⚡`, true);
+        showToast(`🌙 พักผ่อนเต็มอิ่มที่บ้านพัก! เช้าวันที่ ${state.day} — พลังงานฟื้นเต็ม 100 ⚡`, true);
         updateHUD();
         saveGame();
       } else if (target.obj.kind === 'shop') {
@@ -641,7 +817,11 @@
 
     // Celebration particles at station
     const st = GD.STATIONS.find((s) => s.id === q.stationId);
-    if (st) spawnParticles(st.tx * TILE + 16, st.ty * TILE + 8, '#69f0ae', 32);
+    if (state.insideBuildingId) {
+      spawnParticles(10 * TILE + 16, 4.1 * TILE + 8, '#69f0ae', 32);
+    } else if (st) {
+      spawnParticles(st.tx * TILE + 16, st.ty * TILE + 8, '#69f0ae', 32);
+    }
 
     SoundFX.questComplete();
     const rewardText = q.rewardItem ? ` + ${GD.ITEMS[q.rewardItem.id].name}` : '';
@@ -891,12 +1071,15 @@
   });
 
   function warpToTile(tx, ty, label) {
+    state.insideBuildingId = null;
     state.player.x = tx * TILE;
     state.player.y = ty * TILE;
+    state.player.dir = 'up';
+    doorCooldown = 0.5;
     closeAllModals();
     SoundFX.useItem();
     spawnParticles(state.player.x + 16, state.player.y + 16, '#5ce1e6', 24);
-    showToast(`✨ วาร์ปมายัง ${label} เรียบร้อย!`, true);
+    showToast(`✨ วาร์ปมายังหน้าอาคาร "${label}" เรียบร้อย! (กด E ที่ประตูเพื่อเข้าสู่อาคาร)`, true);
     updateHUD();
     saveGame();
   }
@@ -929,14 +1112,17 @@
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;">
           ${statusHtml}
           <div style="display:flex;gap:5px;">
-            ${bld ? '<button class="wood-btn small-btn warp-jump" title="วาร์ปไปหน้าอาคารนี้">📍 วาร์ป</button>' : ''}
+            ${bld ? '<button class="wood-btn small-btn primary-btn enter-jump" title="เข้าสู่ห้องปฏิบัติการในอาคารนี้ทันที">🏠 เข้าอาคาร</button>' : ''}
+            ${bld ? '<button class="wood-btn small-btn warp-jump" title="วาร์ปไปหน้าอาคารนี้">📍 หน้าบ้าน</button>' : ''}
             <button class="wood-btn small-btn codex-jump">📖 คู่มือ</button>
           </div>
         </div>
       `;
       card.querySelector('.codex-jump').onclick = () => openCodexModal(q.unit);
+      const eb = card.querySelector('.enter-jump');
+      if (eb && bld) eb.onclick = () => enterBuilding(bld.id);
       const wb = card.querySelector('.warp-jump');
-      if (wb && bld) wb.onclick = () => warpToTile(bld.warpX, bld.warpY, bld.shortName);
+      if (wb && bld) wb.onclick = () => warpToTile(bld.tx + Math.floor(bld.tw / 2), bld.ty + bld.th, bld.shortName);
       wrap.appendChild(card);
     });
   }
@@ -1338,16 +1524,26 @@
     // Active Quest Tracker
     const q = getActiveQuest();
     if (q) {
+      const qBld = getBuildingForUnit(q.unit);
       document.getElementById('tracker-title').textContent = q.title;
       let obj = q.summary;
-      if (q.requiredItem && !hasItem(q.requiredItem)) {
-        obj = `เก็บ "${GD.ITEMS[q.requiredItem].name}" จากกล่องไม้ใกล้ ๆ แล้วใช้งานตู้เซิร์ฟเวอร์`;
+      if (state.insideBuildingId && qBld && state.insideBuildingId === qBld.id) {
+        if (q.requiredItem && !hasItem(q.requiredItem)) {
+          obj = `กด [E] เบิก "${GD.ITEMS[q.requiredItem].name}" จากกล่องอุปกรณ์ด้านซ้ายในห้อง แล้วใช้งานตู้เซิร์ฟเวอร์`;
+        } else {
+          obj = `คุยกับผู้เชี่ยวชาญในห้อง หรือกด [E] ที่ตู้เซิร์ฟเวอร์ด้านขวาเพื่อเริ่มแล็บปฏิบัติการ!`;
+        }
+        document.getElementById('tracker-direction').textContent = `🏠 ภายใน ${qBld.shortName} • เดินลงประตูด้านล่างเพื่อออกจากอาคาร`;
+      } else {
+        if (qBld) {
+          obj = `เดินไปที่หน้าประตู "${qBld.shortName}" แล้วกด [E] (หรือเดินเข้าประตู) เพื่อเข้าไปรับเควสและทำแล็บด้านในบ้าน`;
+        }
+        document.getElementById('tracker-direction').textContent = '🧭 ' + q.directionHint;
       }
       document.getElementById('tracker-objective').textContent = obj;
-      document.getElementById('tracker-direction').textContent = '🧭 ' + q.directionHint;
     } else {
       document.getElementById('tracker-title').textContent = `🏆 ครบทั้ง ${TOTAL_UNITS} หน่วยการเรียนรู้แล้ว!`;
-      document.getElementById('tracker-objective').textContent = 'Server Valley ออนไลน์ 100%! ทบทวนแล็บหรือทำ Master Quiz ได้ที่ปุ่ม ❓';
+      document.getElementById('tracker-objective').textContent = 'Server Valley ออนไลน์ 100%! เข้าไปทบทวนแล็บในอาคารแต่ละหลังหรือทำ Master Quiz ได้เลย';
       document.getElementById('tracker-direction').textContent = '🎓 กดปุ่ม 🎓 เพื่อดูและพิมพ์เกียรติบัตร ปวช.';
     }
   }
@@ -1355,6 +1551,7 @@
   // ==================== UPDATE & RENDER LOOP ====================
   function update(dt) {
     tick++;
+    if (doorCooldown > 0) doorCooldown = Math.max(0, doorCooldown - dt);
 
     // Gentle Stardew clock progression (1 game minute every ~1.2 real seconds when roaming)
     if (state.started && !activeModalId && !dialogQueue) {
@@ -1368,6 +1565,9 @@
       }
       if (state.speedBoostTimer > 0) {
         state.speedBoostTimer = Math.max(0, state.speedBoostTimer - dt);
+      }
+      if (teacherGodSpeed) {
+        state.energy = state.maxEnergy;
       }
 
       // Movement (supports WASD, Arrow keys, or Both depending on controlMode)
@@ -1385,7 +1585,8 @@
         dx /= len;
         dy /= len;
         const sprinting = keys['ShiftLeft'] || keys['ShiftRight'];
-        const baseSpeed = state.speedBoostTimer > 0 ? 215 : 155;
+        const rawBase = state.speedBoostTimer > 0 ? 215 : 155;
+        const baseSpeed = teacherGodSpeed ? rawBase * 1.85 : rawBase;
         const speed = (sprinting ? baseSpeed * 1.48 : baseSpeed) * dt;
 
         if (Math.abs(dx) > Math.abs(dy)) {
@@ -1398,6 +1599,28 @@
         if (!isBlockedPixel(nx, state.player.y)) state.player.x = nx;
         const ny = state.player.y + dy * speed;
         if (!isBlockedPixel(state.player.x, ny)) state.player.y = ny;
+
+        // Auto-Enter Building when walking up into a building's front door threshold, or Auto-Exit when walking down onto exit mat
+        if (doorCooldown <= 0) {
+          if (state.insideBuildingId) {
+            if (dy > 0 && state.player.y > 8.65 * TILE && Math.abs((state.player.x + 16) - 8 * TILE) < 34) {
+              exitBuilding();
+              return;
+            }
+          } else if (dy < 0) {
+            const px = state.player.x + 16;
+            const py = state.player.y + 24;
+            const hitBld = GD.BUILDINGS.find((b) => {
+              const doorWx = (b.tx + b.tw / 2) * TILE;
+              const doorWy = (b.ty + b.th) * TILE;
+              return Math.abs(px - doorWx) < 20 && Math.abs(py - doorWy) < 11;
+            });
+            if (hitBld) {
+              enterBuilding(hitBld.id);
+              return;
+            }
+          }
+        }
 
         state.player.animTimer += dt * (sprinting ? 1.45 : 1);
         if (state.player.animTimer > 0.14) {
@@ -1515,6 +1738,194 @@
     const zoom = vw < 700 ? 1.15 : 1.45;
     const viewW = vw / zoom;
     const viewH = vh / zoom;
+    const activeQ = getActiveQuest();
+    const nightFactor = state.minutes >= 18 * 60 ? Math.min(1, (state.minutes - 18 * 60) / 150) : 0;
+
+    // ==================== MODE A: INSIDE A 2.5D BUILDING INTERIOR ROOM ====================
+    if (state.insideBuildingId) {
+      const b = getBuildingById(state.insideBuildingId);
+      const layout = getInteriorLayout(state.insideBuildingId);
+      if (b && layout) {
+        // Dark diorama surrounding void
+        const bgGrad = ctx.createRadialGradient(vw / 2, vh / 2, 80, vw / 2, vh / 2, Math.max(vw, vh) * 0.7);
+        bgGrad.addColorStop(0, '#1e293b');
+        bgGrad.addColorStop(1, '#090d16');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, vw, vh);
+
+        // Center the 512x384 (16x12 tiles) interior diorama room
+        const camX = 256 - viewW / 2;
+        const camY = 186 - viewH / 2;
+
+        ctx.save();
+        ctx.scale(zoom, zoom);
+        ctx.translate(-Math.floor(camX), -Math.floor(camY));
+
+        // 1. Draw 2.5D Simulated Room Environment (Walls, Themed Floor, Windows, Whiteboard, Desks, Clusters)
+        Sprites.drawBuildingInterior(ctx, b, isBuildingOnline(b), tick);
+
+        // 2. Y-Sorted Interior Entities (NPC, Server Rack, Supply Crate, Classmates in same room, Player)
+        const roomList = [];
+
+        if (layout.supplyItemId && GD.ITEMS[layout.supplyItemId]) {
+          const hasIt = hasItem(layout.supplyItemId);
+          roomList.push({
+            y: layout.supplyPos.y + 22,
+            draw: () => {
+              Sprites.drawCrate(ctx, layout.supplyPos.x, layout.supplyPos.y, hasIt, tick);
+              ctx.fillStyle = 'rgba(20, 10, 4, 0.85)';
+              ctx.fillRect(layout.supplyPos.x - 16, layout.supplyPos.y + 26, 64, 13);
+              ctx.fillStyle = '#fde68a';
+              ctx.font = 'bold 9px Kanit, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('📦 อุปกรณ์แล็บ', layout.supplyPos.x + 16, layout.supplyPos.y + 36);
+              if (!hasIt) {
+                drawFloatingMarker(ctx, layout.supplyPos.x + 16, layout.supplyPos.y - 8, '!', '#ffd54f');
+              }
+            }
+          });
+        }
+
+        if (layout.station) {
+          const online = isStationOnline(layout.station);
+          roomList.push({
+            y: layout.stationPos.y + 28,
+            draw: () => {
+              Sprites.drawServerRack(ctx, layout.stationPos.x, layout.stationPos.y, online, tick);
+              ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+              ctx.fillRect(layout.stationPos.x - 28, layout.stationPos.y + 30, 88, 14);
+              ctx.fillStyle = online ? '#86efac' : '#bae6fd';
+              ctx.font = 'bold 9.5px Kanit, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText(layout.station.name, layout.stationPos.x + 16, layout.stationPos.y + 40);
+              drawFloatingMarker(ctx, layout.stationPos.x + 16, layout.stationPos.y - 18, '⚡', '#5ce1e6');
+            }
+          });
+        }
+
+        if (layout.npc) {
+          const npc = layout.npc;
+          roomList.push({
+            y: layout.npcPos.y + 30,
+            draw: () => {
+              Sprites.drawCharacter(ctx, layout.npcPos.x, layout.npcPos.y - 10, npc.style, 'down', 0, 2, tick + 17);
+              ctx.fillStyle = 'rgba(30, 15, 5, 0.86)';
+              ctx.fillRect(layout.npcPos.x - 26, layout.npcPos.y + 28, 84, 15);
+              ctx.fillStyle = '#fff5d6';
+              ctx.font = 'bold 10px Kanit, sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText(npc.name, layout.npcPos.x + 16, layout.npcPos.y + 39);
+              drawFloatingMarker(ctx, layout.npcPos.x + 16, layout.npcPos.y - 18, '!', '#ffcf33');
+            }
+          });
+        }
+
+        // Connected Classmates who are inside the SAME building
+        if (window.Multiplayer) {
+          const nowMs = Date.now();
+          Multiplayer.getPeers().forEach((peer, pi) => {
+            if (peer.insideBuildingId !== state.insideBuildingId) return;
+            roomList.push({
+              y: peer.ry + 32,
+              draw: () => {
+                const pStyle = {
+                  ...GD.PLAYER_STYLE,
+                  skin: peer.skin || '#f6cfa6',
+                  hair: peer.hair || '#241712',
+                  hairStyle: peer.hairStyle || 'short',
+                  faceStyle: peer.faceStyle || 'smile',
+                  glasses: peer.faceStyle === 'glasses',
+                  shirt: peer.shirt || '#2b6cb0',
+                  shirtStyle: peer.shirtStyle || 'jacket',
+                  pants: peer.pants || '#2c4969',
+                  shoes: peer.shoes || '#5c3317',
+                  hat: peer.hat || ''
+                };
+                if (peer.isTeacher) drawTeacherAdminAura(ctx, peer.rx + 16, peer.ry + 28, tick);
+                Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
+                if (peer.isTeacher) drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 18, tick);
+                const label = (peer.isTeacher ? '👑 ครู ' : '') + (peer.name || 'เพื่อนร่วมห้อง');
+                ctx.font = 'bold 10px Kanit, sans-serif';
+                const nw = Math.max(58, ctx.measureText(label).width + 14);
+                ctx.fillStyle = peer.isTeacher ? 'rgba(120, 53, 15, 0.92)' : 'rgba(12, 54, 78, 0.85)';
+                ctx.fillRect(peer.rx + 16 - nw / 2, peer.ry + 29, nw, 15);
+                ctx.strokeStyle = peer.isTeacher ? '#fde047' : '#5ce1e6';
+                ctx.lineWidth = peer.isTeacher ? 1.5 : 1;
+                ctx.strokeRect(peer.rx + 16 - nw / 2, peer.ry + 29, nw, 15);
+                ctx.fillStyle = peer.isTeacher ? '#fef9c3' : '#e0fbff';
+                ctx.textAlign = 'center';
+                ctx.fillText(label, peer.rx + 16, peer.ry + 40);
+                if (peer.bubble && peer.bubbleUntil > nowMs) {
+                  drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 24, peer.bubble);
+                }
+              }
+            });
+          });
+        }
+
+        // Local Player inside Room
+        roomList.push({
+          y: state.player.y + 32,
+          draw: () => {
+            if (isTeacherAdmin) drawTeacherAdminAura(ctx, state.player.x + 16, state.player.y + 28, tick);
+            Sprites.drawCharacter(ctx, state.player.x, state.player.y - 6, GD.PLAYER_STYLE, state.player.dir, state.player.frame, 2, tick);
+            if (isTeacherAdmin) {
+              drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 18, tick);
+              const tLabel = '👑 ครู ' + ((state.profile && state.profile.studentName) || 'ครูผู้สอน');
+              ctx.font = 'bold 10px Kanit, sans-serif';
+              const nw = Math.max(64, ctx.measureText(tLabel).width + 14);
+              ctx.fillStyle = 'rgba(120, 53, 15, 0.92)';
+              ctx.fillRect(state.player.x + 16 - nw / 2, state.player.y + 29, nw, 15);
+              ctx.strokeStyle = '#fde047';
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(state.player.x + 16 - nw / 2, state.player.y + 29, nw, 15);
+              ctx.fillStyle = '#fef9c3';
+              ctx.textAlign = 'center';
+              ctx.fillText(tLabel, state.player.x + 16, state.player.y + 40);
+            }
+            if (myBubble && myBubbleUntil > Date.now()) {
+              drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 26 : 16), myBubble);
+            }
+          }
+        });
+
+        roomList.sort((a, b0) => a.y - b0.y);
+        roomList.forEach((r) => r.draw());
+
+        // Floating [E] Prompt inside Room
+        if (state.started && !activeModalId && !dialogQueue) {
+          const target = findNearestInteractable();
+          if (target) {
+            const text = `[E] ${target.label}`;
+            ctx.font = 'bold 11px Kanit, sans-serif';
+            const tw = ctx.measureText(text).width + 14;
+            const bx = target.wx - tw / 2;
+            const by = target.wy - 42 + Math.sin(tick / 10) * 2;
+            ctx.fillStyle = 'rgba(42, 20, 6, 0.92)';
+            ctx.fillRect(bx, by, tw, 20);
+            ctx.strokeStyle = '#ffd54f';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(bx, by, tw, 20);
+            ctx.fillStyle = '#fff8dc';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, target.wx, by + 14);
+          }
+        }
+
+        // Particles inside room
+        particles.forEach((p) => {
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * 0.65, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.restore();
+        return;
+      }
+    }
+
+    // ==================== MODE B: OUTDOOR 2.5D SERVER VALLEY VILLAGE ====================
     const worldW = GD.MAP_W * TILE;
     const worldH = GD.MAP_H * TILE;
 
@@ -1533,14 +1944,14 @@
     const startY = Math.max(0, Math.floor(camY / TILE) - 1);
     const endY = Math.min(GD.MAP_H - 1, Math.ceil((camY + viewH) / TILE) + 1);
 
-    // 1. 16-Bit Auto-Tiled Ground Tiles (shorelines, foam & grass-over-path borders!)
+    // 1. 2.5D Auto-Tiled Ground Tiles
     for (let y = startY; y <= endY; y++) {
       for (let x = startX; x <= endX; x++) {
         Sprites.drawTile(ctx, tileMap[y][x], x, y, x * TILE, y * TILE, tick, tileMap);
       }
     }
 
-    // 1.5 Swimming 16-bit Koi Fish inside East Lake & South Koi Pond
+    // 1.5 Swimming Koi Fish inside East Lake & South Koi Pond
     KOI_FISH.forEach((f) => {
       if (f.x < camX - 32 || f.x > camX + viewW + 32 || f.y < camY - 32 || f.y > camY + viewH + 32) return;
       const tailWag = Math.sin(tick / 6 + f.x) * 2;
@@ -1553,7 +1964,7 @@
       ctx.fillRect(Math.floor(f.vx > 0 ? f.x + 5 : f.x + 1), Math.floor(f.y + 1), 2, 1);
     });
 
-    // 1.6 Subtle Glowing Fiber-Optic Data Pulses streaming along Main Boulevards (grows with completed weeks!)
+    // 1.6 Subtle Glowing Fiber-Optic Data Pulses streaming along Main Boulevards
     const pulseCount = Math.max(2, Math.min(14, state.completedUnits.length + 2));
     for (let i = 0; i < pulseCount; i++) {
       const hx = ((tick * 1.8 + i * 210) % (GD.MAP_W * TILE));
@@ -1565,20 +1976,12 @@
       ctx.fillRect(Math.floor(vx), Math.floor(vy), 2, 10);
     }
 
-    // 2. Special Ground Spots (Rest Sign, IT Shop Kiosk & Fast-Travel Warp Totem)
+    // 2. Outdoor Central Plaza Landmarks (IT Shop Kiosk & Fast-Travel Warp Totem)
     GD.SPECIAL_PROPS.forEach((sp) => {
+      if (sp.kind === 'bed') return; // Bed is now inside Admin Cottage!
       const wx = sp.tx * TILE;
       const wy = sp.ty * TILE;
-      if (sp.kind === 'bed') {
-        ctx.fillStyle = '#3b200d';
-        ctx.fillRect(wx + 3, wy + 5, 26, 24);
-        ctx.fillStyle = '#ffdf85';
-        ctx.fillRect(wx + 5, wy + 7, 22, 18);
-        ctx.fillStyle = '#381e0c';
-        ctx.font = 'bold 12px Kanit, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('🛏️', wx + 16, wy + 21);
-      } else if (sp.kind === 'shop') {
+      if (sp.kind === 'shop') {
         ctx.fillStyle = '#2e1608';
         ctx.fillRect(wx - 6, wy - 6, 48, 38);
         ctx.fillStyle = '#d94848';
@@ -1607,10 +2010,8 @@
 
     // 3. Y-Sorted Renderables with Viewport Culling for fast 4x Map rendering
     const renderList = [];
-    const activeQ = getActiveQuest();
-    const nightFactor = state.minutes >= 18 * 60 ? Math.min(1, (state.minutes - 18 * 60) / 150) : 0;
 
-    // Central Plaza Animated 16-bit Fountain!
+    // Central Plaza Animated Fountain
     if (41 >= startX - 3 && 41 <= endX + 3 && 24 >= startY - 3 && 24 <= endY + 3) {
       renderList.push({
         y: 24 * TILE + 28,
@@ -1627,11 +2028,29 @@
       });
     });
 
+    // All 17 Enterable 2.5D Buildings with Glowing Entrance Mats & Active Quest Beacons!
     GD.BUILDINGS.forEach((b) => {
       if (b.tx + b.tw < startX - 2 || b.tx > endX + 2 || b.ty + b.th < startY - 2 || b.ty > endY + 2) return;
+      const isQuestBuilding = activeQ && b.units && b.units.includes(activeQ.unit);
       renderList.push({
         y: (b.ty + b.th) * TILE,
-        draw: () => Sprites.drawBuilding(ctx, b, isBuildingOnline(b), tick)
+        draw: () => {
+          Sprites.drawBuilding(ctx, b, isBuildingOnline(b), tick);
+          // Glowing 2.5D Welcome Mat in front of the door
+          const doorX = (b.tx + Math.floor(b.tw / 2)) * TILE;
+          const doorY = (b.ty + b.th) * TILE;
+          ctx.fillStyle = isQuestBuilding ? 'rgba(253, 224, 71, 0.45)' : 'rgba(255, 255, 255, 0.18)';
+          ctx.fillRect(doorX - 18, doorY + 1, 36, 10);
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(doorX - 15, doorY + 2, 30, 7);
+          ctx.fillStyle = '#fef08a';
+          ctx.font = 'bold 8px Kanit, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('🚪 เข้า [E]', doorX, doorY + 8);
+          if (isQuestBuilding) {
+            drawFloatingMarker(ctx, doorX, doorY - 24, '!', '#ffcf33');
+          }
+        }
       });
     });
 
@@ -1657,40 +2076,6 @@
       });
     });
 
-    GD.STATIONS.forEach((st) => {
-      const online = isStationOnline(st);
-      const isQuestStation = activeQ && activeQ.stationId === st.id;
-      renderList.push({
-        y: st.ty * TILE + 28,
-        draw: () => {
-          Sprites.drawServerRack(ctx, st.tx * TILE, st.ty * TILE, online, tick);
-          if (isQuestStation) {
-            drawFloatingMarker(ctx, st.tx * TILE + 16, st.ty * TILE - 18, '⚡', '#5ce1e6');
-          }
-        }
-      });
-    });
-
-    GD.NPCS.forEach((npc, ni) => {
-      const isQuestNpc = activeQ && activeQ.npcId === npc.id;
-      renderList.push({
-        y: npc.ty * TILE + 30,
-        draw: () => {
-          Sprites.drawCharacter(ctx, npc.tx * TILE, npc.ty * TILE - 10, npc.style, 'down', 0, 2, tick + ni * 37);
-          // Nameplate
-          ctx.fillStyle = 'rgba(30, 15, 5, 0.78)';
-          ctx.fillRect(npc.tx * TILE - 22, npc.ty * TILE + 28, 76, 14);
-          ctx.fillStyle = '#fff5d6';
-          ctx.font = '10px Kanit, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(npc.name, npc.tx * TILE + 16, npc.ty * TILE + 39);
-          if (isQuestNpc) {
-            drawFloatingMarker(ctx, npc.tx * TILE + 16, npc.ty * TILE - 18, '!', '#ffcf33');
-          }
-        }
-      });
-    });
-
     GD.LAMPS.forEach((lp) => {
       if (lp.tx < startX - 3 || lp.tx > endX + 3 || lp.ty < startY - 3 || lp.ty > endY + 3) return;
       renderList.push({
@@ -1699,10 +2084,11 @@
       });
     });
 
-    // Connected Classmates (16-bit Pixel Peers + Nameplates + Speech Bubbles!)
+    // Connected Classmates who are OUTSIDE in the village
     if (window.Multiplayer) {
       const nowMs = Date.now();
       Multiplayer.getPeers().forEach((peer, pi) => {
+        if (peer.insideBuildingId) return;
         if (peer.rx < camX - 64 || peer.rx > camX + viewW + 64 || peer.ry < camY - 64 || peer.ry > camY + viewH + 64) return;
         renderList.push({
           y: peer.ry + 32,
@@ -1720,23 +2106,27 @@
               shoes: peer.shoes || '#5c3317',
               hat: peer.hat || ''
             };
+            if (peer.isTeacher) {
+              drawTeacherAdminAura(ctx, peer.rx + 16, peer.ry + 28, tick);
+            }
             Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
-            // Cyan/Emerald Player Nameplate
-            const label = peer.name || 'เพื่อนร่วมห้อง';
+            if (peer.isTeacher) {
+              drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 18, tick);
+            }
+            const label = (peer.isTeacher ? '👑 ครู ' : '') + (peer.name || 'เพื่อนร่วมห้อง');
             ctx.font = 'bold 10px Kanit, sans-serif';
             const nw = Math.max(58, ctx.measureText(label).width + 14);
-            ctx.fillStyle = 'rgba(12, 54, 78, 0.85)';
+            ctx.fillStyle = peer.isTeacher ? 'rgba(120, 53, 15, 0.92)' : 'rgba(12, 54, 78, 0.85)';
             ctx.fillRect(peer.rx + 16 - nw / 2, peer.ry + 29, nw, 15);
-            ctx.strokeStyle = '#5ce1e6';
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = peer.isTeacher ? '#fde047' : '#5ce1e6';
+            ctx.lineWidth = peer.isTeacher ? 1.5 : 1;
             ctx.strokeRect(peer.rx + 16 - nw / 2, peer.ry + 29, nw, 15);
-            ctx.fillStyle = '#e0fbff';
+            ctx.fillStyle = peer.isTeacher ? '#fef9c3' : '#e0fbff';
             ctx.textAlign = 'center';
             ctx.fillText(label, peer.rx + 16, peer.ry + 40);
 
-            // Floating speech bubble if chatting!
             if (peer.bubble && peer.bubbleUntil > nowMs) {
-              drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 16, peer.bubble);
+              drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 24, peer.bubble);
             }
           }
         });
@@ -1747,6 +2137,9 @@
     renderList.push({
       y: state.player.y + 32,
       draw: () => {
+        if (isTeacherAdmin) {
+          drawTeacherAdminAura(ctx, state.player.x + 16, state.player.y + 28, tick);
+        }
         Sprites.drawCharacter(
           ctx,
           state.player.x,
@@ -1757,8 +2150,22 @@
           2,
           tick
         );
+        if (isTeacherAdmin) {
+          drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 18, tick);
+          const tLabel = '👑 ครู ' + ((state.profile && state.profile.studentName) || 'ครูผู้สอน');
+          ctx.font = 'bold 10px Kanit, sans-serif';
+          const nw = Math.max(64, ctx.measureText(tLabel).width + 14);
+          ctx.fillStyle = 'rgba(120, 53, 15, 0.92)';
+          ctx.fillRect(state.player.x + 16 - nw / 2, state.player.y + 29, nw, 15);
+          ctx.strokeStyle = '#fde047';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(state.player.x + 16 - nw / 2, state.player.y + 29, nw, 15);
+          ctx.fillStyle = '#fef9c3';
+          ctx.textAlign = 'center';
+          ctx.fillText(tLabel, state.player.x + 16, state.player.y + 40);
+        }
         if (myBubble && myBubbleUntil > Date.now()) {
-          drawSpeechBubble(ctx, state.player.x + 16, state.player.y - 16, myBubble);
+          drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 26 : 16), myBubble);
         }
       }
     });
@@ -1766,19 +2173,17 @@
     renderList.sort((a, b) => a.y - b.y);
     renderList.forEach((r) => r.draw());
 
-    // 4. Directional Guide Arrow near player pointing to active quest!
+    // 4. Directional Guide Arrow near player pointing to active quest's Building Entrance Door!
     if (state.started && activeQ && !activeModalId && !dialogQueue) {
-      let tx = 20 * TILE;
-      let ty = 11 * TILE;
-      if (activeQ.requiredItem && !hasItem(activeQ.requiredItem)) {
-        const cr = GD.CRATES.find((c) => c.itemId === activeQ.requiredItem);
-        if (cr) { tx = cr.tx * TILE + 16; ty = cr.ty * TILE + 16; }
-      } else {
-        const st = GD.STATIONS.find((s) => s.id === activeQ.stationId);
-        if (st) { tx = st.tx * TILE + 16; ty = st.ty * TILE + 16; }
+      let tx = 18 * TILE;
+      let ty = 8 * TILE;
+      const qBld = getBuildingForUnit(activeQ.unit);
+      if (qBld) {
+        tx = (qBld.tx + Math.floor(qBld.tw / 2)) * TILE;
+        ty = (qBld.ty + qBld.th) * TILE;
       }
       const dist = Math.hypot(tx - (state.player.x + 16), ty - (state.player.y + 16));
-      if (dist > 95) {
+      if (dist > 65) {
         const ang = Math.atan2(ty - (state.player.y + 16), tx - (state.player.x + 16));
         const ax = state.player.x + 16 + Math.cos(ang) * 34;
         const ay = state.player.y + 16 + Math.sin(ang) * 34;
@@ -1958,6 +2363,52 @@
     ctx.font = 'bold 12px Kanit, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(symbol, 0, 4);
+    ctx.restore();
+  }
+
+  function drawTeacherAdminAura(ctx, cx, cy, tick) {
+    ctx.save();
+    const pulse = 1 + Math.sin(tick / 10) * 0.12;
+    const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 22 * pulse);
+    grad.addColorStop(0, 'rgba(253, 224, 71, 0.55)');
+    grad.addColorStop(0.6, 'rgba(245, 158, 11, 0.28)');
+    grad.addColorStop(1, 'rgba(245, 158, 11, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 22 * pulse, 9 * pulse, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(254, 240, 138, 0.85)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, 16 * pulse, 6.2 * pulse, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTeacherCrownBadge(ctx, cx, cy, tick) {
+    const dy = Math.sin(tick / 11) * 2.2;
+    ctx.save();
+    ctx.translate(cx, cy + dy);
+    // Glowing golden crown
+    ctx.fillStyle = '#fde047';
+    ctx.strokeStyle = '#78350f';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    ctx.moveTo(-8, 4);
+    ctx.lineTo(-9, -4);
+    ctx.lineTo(-4, 0);
+    ctx.lineTo(0, -6);
+    ctx.lineTo(4, 0);
+    ctx.lineTo(9, -4);
+    ctx.lineTo(8, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Ruby jewel on crown center
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(0, 0.5, 1.8, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
@@ -2362,6 +2813,8 @@
       const slotIdx = HOTBAR_KEYS.indexOf(e.key);
       if (e.code === 'KeyL') {
         openMultiplayerModal('connect');
+      } else if (e.code === 'KeyT') {
+        openMultiplayerModal('teacher');
       } else if (e.code === 'KeyC') {
         openCustomizerModal();
       } else if (slotIdx !== -1) {
@@ -2463,7 +2916,152 @@
     `;
   }
 
+  function getSelectedAdminUnit() {
+    const sel = document.getElementById('admin-unit-select');
+    return sel ? (Number(sel.value) || 1) : 1;
+  }
+
+  function syncTeacherAdminUI() {
+    const lockBox = document.getElementById('teacher-admin-lock-box');
+    const panel = document.getElementById('teacher-admin-panel');
+    const hudBtn = document.getElementById('btn-teacher-admin');
+    const godBtn = document.getElementById('btn-admin-godspeed');
+    if (lockBox) lockBox.classList.toggle('hidden', isTeacherAdmin);
+    if (panel) panel.classList.toggle('hidden', !isTeacherAdmin);
+    if (hudBtn) hudBtn.classList.toggle('teacher-active', isTeacherAdmin);
+    if (godBtn) {
+      godBtn.textContent = teacherGodSpeed
+        ? '⚡ วิ่งไวพิเศษ 2x & พลังงานไม่จำกัด: เปิดอยู่ 🟢'
+        : '⚡ วิ่งไวพิเศษ 2x & พลังงานไม่จำกัด: ปิดอยู่';
+      godBtn.classList.toggle('primary-btn', teacherGodSpeed);
+    }
+  }
+
+  function showTeacherAnnouncementBanner(text, teacherName) {
+    const banner = document.getElementById('teacher-announce-banner');
+    const senderEl = document.getElementById('announce-sender');
+    const textEl = document.getElementById('announce-text');
+    if (!banner || !textEl) return;
+    if (senderEl) senderEl.textContent = `👑 ประกาศด่วนจาก ${teacherName || 'คุณครูผู้สอน'}`;
+    textEl.textContent = text;
+    banner.classList.remove('hidden');
+    SoundFX.questComplete();
+    if (announceTimer) clearTimeout(announceTimer);
+    announceTimer = setTimeout(() => {
+      banner.classList.add('hidden');
+    }, 12000);
+  }
+
+  function getUnitWarpCoords(unit) {
+    const b = GD.BUILDINGS.find((x) => x.units && x.units.includes(Number(unit)));
+    if (b) {
+      return {
+        x: (b.tx + Math.floor(b.tw / 2)) * TILE,
+        y: (b.ty + b.th) * TILE + 8,
+        title: b.name
+      };
+    }
+    const st = GD.STATIONS.find((s) => s.units && s.units.includes(Number(unit)));
+    if (st) {
+      return {
+        x: st.tx * TILE,
+        y: (st.ty + 1) * TILE,
+        title: st.name
+      };
+    }
+    return { x: 41 * TILE, y: 26 * TILE, title: 'จัตุรัสกลางหมู่บ้าน' };
+  }
+
+  function handleTeacherAdminCommand(cmd) {
+    if (!cmd || !cmd.action) return;
+    const tName = cmd.teacherName || 'คุณครูผู้สอน';
+
+    if (cmd.action === 'announce' && cmd.text) {
+      showTeacherAnnouncementBanner(cmd.text, tName);
+    } else if (cmd.action === 'summon') {
+      if (cmd.senderId === (window.Multiplayer && Multiplayer.myId)) return;
+      closeAllModals();
+      closeDialog();
+      state.insideBuildingId = cmd.insideBuildingId || null;
+      const angle = Math.random() * Math.PI * 2;
+      const dist = state.insideBuildingId ? (16 + Math.random() * 18) : (36 + Math.random() * 28);
+      const baseX = cmd.x || (state.insideBuildingId ? 7.5 * TILE : 41 * TILE);
+      const baseY = cmd.y || (state.insideBuildingId ? 7.5 * TILE : 26 * TILE);
+      const nx = baseX + Math.cos(angle) * dist;
+      const ny = baseY + Math.sin(angle) * dist;
+      state.player.x = isBlockedPixel(nx, ny) ? baseX : nx;
+      state.player.y = isBlockedPixel(nx, ny) ? baseY : ny;
+      spawnParticles(state.player.x + 16, state.player.y + 16, '#fde047', 26);
+      showTeacherAnnouncementBanner(`🧲 ${tName} เรียกตัวนักเรียนมารวมพล!`, tName);
+      updateHUD();
+    } else if (cmd.action === 'warp_unit' && cmd.unit) {
+      closeAllModals();
+      closeDialog();
+      const bld = getBuildingForUnit(cmd.unit);
+      if (bld) {
+        enterBuilding(bld.id);
+        const offset = (cmd.senderId === (window.Multiplayer && Multiplayer.myId)) ? 0 : ((Math.random() - 0.5) * 48);
+        state.player.x = Math.max(2 * TILE, Math.min(13 * TILE, 7.5 * TILE + offset));
+      } else {
+        const target = getUnitWarpCoords(cmd.unit);
+        state.insideBuildingId = null;
+        state.player.x = target.x;
+        state.player.y = target.y;
+      }
+      spawnParticles(state.player.x + 16, state.player.y + 16, '#38bdf8', 24);
+      showTeacherAnnouncementBanner(`🏠 เข้าสู่ห้องปฏิบัติการสัปดาห์ที่ ${cmd.unit}${bld ? ': ' + bld.shortName : ''}`, tName);
+      updateHUD();
+    } else if (cmd.action === 'open_lab' && cmd.unit) {
+      if (cmd.senderId === (window.Multiplayer && Multiplayer.myId)) return;
+      closeDialog();
+      openLabModal(Number(cmd.unit), isUnitDone(Number(cmd.unit)));
+      showToast(`👑 ${tName} เปิดหน้าต่างแล็บสัปดาห์ที่ ${cmd.unit} ให้ทำพร้อมกัน!`, true);
+    } else if (cmd.action === 'open_codex' && cmd.unit) {
+      if (cmd.senderId === (window.Multiplayer && Multiplayer.myId)) return;
+      closeDialog();
+      openCodexModal(Number(cmd.unit));
+      showToast(`👑 ${tName} เปิดคู่มือคลังเนื้อหาสัปดาห์ที่ ${cmd.unit}!`, true);
+    } else if (cmd.action === 'start_quiz') {
+      if (cmd.senderId === (window.Multiplayer && Multiplayer.myId)) return;
+      closeDialog();
+      openMasterQuiz();
+      showTeacherAnnouncementBanner('📝 เริ่มทำแบบทดสอบรวม Master Quiz 18 ข้อ พร้อมกัน!', tName);
+    } else if (cmd.action === 'bonus') {
+      const addB = Number(cmd.bytes) || 100;
+      state.bytes += addB;
+      state.energy = state.maxEnergy;
+      spawnParticles(state.player.x + 16, state.player.y + 12, '#4ade80', 28);
+      SoundFX.questComplete();
+      updateHUD();
+      saveGame();
+      showToast(`🎁 ได้รับโบนัสจาก ${tName}: +${addB} Bytes 🪙 & ฟื้นฟูพลังงานเต็ม 100%!`, true);
+    } else if (cmd.action === 'unlock_unit' && cmd.unit) {
+      const u = Number(cmd.unit);
+      coopOnlineUnits.add(u);
+      if (cmd.targetId && !state.completedUnits.includes(u)) {
+        state.completedUnits.push(u);
+        const nextQ = GD.QUESTS.find((x) => !state.completedUnits.includes(x.unit));
+        state.activeQuestId = nextQ ? nextQ.id : null;
+        saveGame();
+      }
+      SoundFX.questComplete();
+      updateHUD();
+      showToast(`✅ ${tName} อนุมัติผ่านสัปดาห์ที่ ${u} ให้เรียบร้อยแล้ว!`, true);
+    } else if (cmd.action === 'unlock_all') {
+      for (let u = 1; u <= TOTAL_UNITS; u++) coopOnlineUnits.add(u);
+      SoundFX.questComplete();
+      updateHUD();
+      showToast(`🏆 ${tName} ปลดล็อกอาคารทั้ง 18 สัปดาห์ให้ห้องเรียนออนไลน์ 100%!`, true);
+    } else if (cmd.action === 'reset_coop') {
+      coopOnlineUnits.clear();
+      state.completedUnits.forEach((u) => coopOnlineUnits.add(u));
+      updateHUD();
+      showToast(`🔄 ${tName} รีเซ็ตสถานะอาคาร Co-op ของห้องเรียนแล้ว`, true);
+    }
+  }
+
   function renderTeacherDashboard() {
+    syncTeacherAdminUI();
     const cardsEl = document.getElementById('teacher-summary-cards');
     const tableEl = document.getElementById('teacher-table-wrap');
     if (!cardsEl || !tableEl || !window.Multiplayer) return;
@@ -2497,6 +3095,8 @@
       </div>
     `;
 
+    const selUnit = getSelectedAdminUnit();
+
     tableEl.innerHTML = `
       <table class="mp-table">
         <thead>
@@ -2508,26 +3108,96 @@
             <th>รายการสัปดาห์ที่ผ่าน</th>
             <th>Quiz สูงสุด</th>
             <th>สถานะ</th>
+            ${isTeacherAdmin ? '<th>👑 จัดการรายบุคคล (แอดมินครู)</th>' : ''}
           </tr>
         </thead>
         <tbody>
           ${players.map((p) => {
             const wList = (p.completedUnits || []).slice().sort((a, b) => a - b).join(', ') || 'ยังไม่เริ่ม';
+            const roleBadge = p.isTeacher ? ' <span class="admin-badge-live" style="font-size:10px;padding:1px 6px;">👑 ครู</span>' : '';
             return `
               <tr class="${p.isMe ? 'me-row' : ''}">
-                <td>${escapeHtml(p.name)}</td>
+                <td>${escapeHtml(p.name)}${roleBadge} ${p.isMe ? '(คุณ)' : ''}</td>
                 <td>${escapeHtml(p.studentClass || '-')}</td>
                 <td>${escapeHtml(p.zone || '-')}</td>
                 <td><strong>${p.doneCount}/${TOTAL_UNITS}</strong></td>
                 <td style="font-size:12px;">${wList}</td>
                 <td>${p.bestQuiz ? `${p.bestQuiz.score}/${p.bestQuiz.total}` : 'ยังไม่สอบ'}</td>
                 <td><span class="mp-online-badge">● ออนไลน์</span></td>
+                ${isTeacherAdmin ? `
+                  <td>
+                    <div class="student-admin-actions">
+                      ${!p.isMe ? `
+                        <button class="student-admin-btn" data-stu-act="goto" data-stu-id="${escapeHtml(p.id)}" title="วาร์ปครูไปหานักเรียนคนนี้">👁️ ไปหา</button>
+                        <button class="student-admin-btn" data-stu-act="pull" data-stu-id="${escapeHtml(p.id)}" title="ดึงนักเรียนคนนี้มาหาครู">🧲 ดึงมา</button>
+                      ` : ''}
+                      <button class="student-admin-btn" data-stu-act="bonus" data-stu-id="${escapeHtml(p.id)}" title="แจกโบนัส +50 Bytes ให้นักเรียนคนนี้">🎁 +50🪙</button>
+                      <button class="student-admin-btn" data-stu-act="pass" data-stu-id="${escapeHtml(p.id)}" title="อนุมัติให้ผ่านสัปดาห์ที่ ${selUnit}">✅ ให้ผ่าน W${selUnit}</button>
+                    </div>
+                  </td>
+                ` : ''}
               </tr>
             `;
           }).join('')}
         </tbody>
       </table>
     `;
+
+    if (isTeacherAdmin) {
+      tableEl.querySelectorAll('.student-admin-btn').forEach((btn) => {
+        btn.onclick = () => {
+          SoundFX.click();
+          const act = btn.dataset.stuAct;
+          const sid = btn.dataset.stuId;
+          const targetP = players.find((x) => x.id === sid);
+          if (!targetP) return;
+
+          if (act === 'goto') {
+            closeAllModals();
+            state.insideBuildingId = targetP.insideBuildingId || null;
+            state.player.x = targetP.x || 41 * TILE;
+            state.player.y = (targetP.y || 26 * TILE) + (state.insideBuildingId ? 8 : 24);
+            spawnParticles(state.player.x + 16, state.player.y + 16, '#fde047', 22);
+            showToast(`👁️ วาร์ปมาหานักเรียน "${targetP.name}" แล้ว!`, true);
+          } else if (act === 'pull') {
+            Multiplayer.sendAdminCommand({
+              action: 'summon',
+              targetId: sid,
+              insideBuildingId: state.insideBuildingId || null,
+              x: Math.round(state.player.x),
+              y: Math.round(state.player.y),
+              chatText: `🧲 คุณครูดึงตัว ${targetP.name} มาพบที่จุดรวมพล`
+            });
+            showToast(`🧲 ดึงตัว "${targetP.name}" มาหาครูแล้ว!`, true);
+          } else if (act === 'bonus') {
+            Multiplayer.sendAdminCommand({
+              action: 'bonus',
+              targetId: sid,
+              bytes: 50,
+              chatText: `🎁 คุณครูมอบโบนัสพิเศษ +50 Bytes ให้ ${targetP.name}!`
+            });
+            showToast(`🎁 ส่งโบนัส +50 Bytes ให้ "${targetP.name}" แล้ว!`, true);
+          } else if (act === 'pass') {
+            const u = getSelectedAdminUnit();
+            if (targetP.isMe) {
+              if (!state.completedUnits.includes(u)) state.completedUnits.push(u);
+              coopOnlineUnits.add(u);
+              saveGame();
+              updateHUD();
+              renderTeacherDashboard();
+            } else {
+              Multiplayer.sendAdminCommand({
+                action: 'unlock_unit',
+                targetId: sid,
+                unit: u,
+                chatText: `✅ คุณครูอนุมัติให้ ${targetP.name} ผ่านสัปดาห์ที่ ${u}!`
+              });
+            }
+            showToast(`✅ อนุมัติให้ "${targetP.name}" ผ่านสัปดาห์ที่ ${u} เรียบร้อย!`, true);
+          }
+        };
+      });
+    }
   }
 
   function appendChatBubbleUI(entry) {
@@ -2567,9 +3237,11 @@
         shoes: GD.PLAYER_STYLE.shoes,
         hat: GD.PLAYER_STYLE.hat || '',
         zone: getZoneName(Math.floor((state.player.x + 16) / TILE), Math.floor((state.player.y + 16) / TILE)),
+        insideBuildingId: state.insideBuildingId || null,
         completedUnits: state.completedUnits,
         bestQuiz: state.bestMasterQuiz,
-        bytes: state.bytes
+        bytes: state.bytes,
+        isTeacher: isTeacherAdmin
       }),
       onCoopUnitUnlocked: (unit, byName) => {
         if (!coopOnlineUnits.has(unit)) {
@@ -2581,6 +3253,7 @@
       },
       onChatMessage: appendChatBubbleUI,
       onToast: showToast,
+      onAdminCommand: handleTeacherAdminCommand,
       onStatusChange: (st) => {
         const bar = document.getElementById('mp-status-bar');
         const lbl = document.getElementById('mp-btn-label');
@@ -2707,6 +3380,260 @@
     showToast('📥 ดาวน์โหลดรายงานคะแนน CSV สำเร็จ! (เปิดใน Excel ได้ทันที)', true);
   };
 
+  // ==================== TEACHER ADMIN CONSOLE WIRING ====================
+  const adminUnitSelect = document.getElementById('admin-unit-select');
+  if (adminUnitSelect && window.CODEX_UNITS) {
+    adminUnitSelect.innerHTML = window.CODEX_UNITS.map((u) => (
+      `<option value="${u.id}">สัปดาห์ที่ ${u.id}: ${u.title}</option>`
+    )).join('');
+    adminUnitSelect.onchange = () => {
+      if (isTeacherAdmin) renderTeacherDashboard();
+    };
+  }
+
+  function getSavedTeacherPin() {
+    try {
+      return localStorage.getItem(TEACHER_PIN_KEY) || '1234';
+    } catch (e) {
+      return '1234';
+    }
+  }
+
+  const pinInput = document.getElementById('input-teacher-pin');
+  const unlockAdminNow = () => {
+    const entered = (pinInput && pinInput.value.trim()) || '';
+    if (entered !== getSavedTeacherPin()) {
+      SoundFX.error();
+      showToast('❌ รหัส PIN คุณครูไม่ถูกต้อง (รหัสเริ่มต้นคือ 1234)');
+      return;
+    }
+    isTeacherAdmin = true;
+    if (pinInput) pinInput.value = '';
+    try { sessionStorage.setItem(TEACHER_SESSION_KEY, '1'); } catch (e) {}
+    SoundFX.questComplete();
+    syncTeacherAdminUI();
+    renderTeacherDashboard();
+    showToast('👑 เปิดโหมดแอดมินสำหรับคุณครูแล้ว! (ตัวละครของคุณมีมงกุฎทอง 👑 บนหัว)', true);
+  };
+
+  document.getElementById('btn-unlock-teacher-admin').onclick = unlockAdminNow;
+  if (pinInput) {
+    pinInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') unlockAdminNow();
+    });
+  }
+
+  document.getElementById('btn-lock-teacher-admin').onclick = () => {
+    SoundFX.click();
+    isTeacherAdmin = false;
+    teacherGodSpeed = false;
+    try { sessionStorage.removeItem(TEACHER_SESSION_KEY); } catch (e) {}
+    syncTeacherAdminUI();
+    renderTeacherDashboard();
+    showToast('🔒 ปิดโหมดแอดมินสำหรับคุณครูแล้ว');
+  };
+
+  document.getElementById('btn-change-teacher-pin').onclick = () => {
+    const nextPin = prompt('กำหนดรหัส PIN ใหม่สำหรับโหมดแอดมินครู (เช่น 1234):', getSavedTeacherPin());
+    if (nextPin && nextPin.trim()) {
+      try { localStorage.setItem(TEACHER_PIN_KEY, nextPin.trim()); } catch (e) {}
+      showToast(`🔑 เปลี่ยนรหัส PIN คุณครูเป็น "${nextPin.trim()}" เรียบร้อยแล้ว!`, true);
+    }
+  };
+
+  document.getElementById('btn-announce-close').onclick = () => {
+    document.getElementById('teacher-announce-banner').classList.add('hidden');
+  };
+
+  const announceInput = document.getElementById('admin-announce-input');
+  const sendTeacherAnnouncement = (textVal) => {
+    const msg = (textVal || (announceInput && announceInput.value) || '').trim();
+    if (!msg) return showToast('⚠️ กรุณาพิมพ์ข้อความประกาศก่อนส่ง');
+    Multiplayer.sendAdminCommand({
+      action: 'announce',
+      text: msg,
+      chatText: `📢 [ประกาศจากคุณครู] ${msg}`
+    });
+    if (announceInput) announceInput.value = '';
+    showToast('📢 ส่งประกาศขึ้นหน้าจอนักเรียนทั้งห้องเรียบร้อยแล้ว!', true);
+  };
+
+  document.getElementById('btn-admin-announce').onclick = () => sendTeacherAnnouncement();
+  if (announceInput) {
+    announceInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendTeacherAnnouncement();
+    });
+  }
+  document.querySelectorAll('.admin-preset-msg').forEach((btn) => {
+    btn.onclick = () => sendTeacherAnnouncement(btn.dataset.msg);
+  });
+
+  // Classroom Remote Broadcast Buttons
+  document.getElementById('btn-admin-warp-class').onclick = () => {
+    const u = getSelectedAdminUnit();
+    Multiplayer.sendAdminCommand({
+      action: 'warp_unit',
+      unit: u,
+      chatText: `📍 คุณครูวาร์ปนักเรียนทั้งห้องไปยังอาคารสัปดาห์ที่ ${u}!`
+    });
+  };
+
+  document.getElementById('btn-admin-open-lab-class').onclick = () => {
+    const u = getSelectedAdminUnit();
+    Multiplayer.sendAdminCommand({
+      action: 'open_lab',
+      unit: u,
+      chatText: `🖥️ คุณครูสั่งเปิดหน้าต่างแล็บปฏิบัติการสัปดาห์ที่ ${u} บนหน้าจอนักเรียนทุกคน!`
+    });
+    showToast(`🖥️ สั่งเปิดแล็บสัปดาห์ที่ ${u} บนจอนักเรียนทั้งห้องแล้ว!`, true);
+  };
+
+  document.getElementById('btn-admin-open-codex-class').onclick = () => {
+    const u = getSelectedAdminUnit();
+    Multiplayer.sendAdminCommand({
+      action: 'open_codex',
+      unit: u,
+      chatText: `📖 คุณครูเปิดคู่มือคลังเนื้อหาสัปดาห์ที่ ${u} ให้นักเรียนทุกคนอ่านพร้อมกัน`
+    });
+    showToast(`📖 สั่งเปิดคู่มือสัปดาห์ที่ ${u} บนจอนักเรียนทั้งห้องแล้ว!`, true);
+  };
+
+  document.getElementById('btn-admin-summon-all').onclick = () => {
+    closeAllModals();
+    Multiplayer.sendAdminCommand({
+      action: 'summon',
+      insideBuildingId: state.insideBuildingId || null,
+      x: Math.round(state.player.x),
+      y: Math.round(state.player.y),
+      chatText: '🧲 คุณครูเรียกตัวนักเรียนทุกคนมารวมพลที่ตำแหน่งของคุณครู!'
+    });
+    spawnParticles(state.player.x + 16, state.player.y + 16, '#fde047', 30);
+    showToast('🧲 เรียกตัวนักเรียนทั้งห้องมารวมพลรอบตัวคุณครูแล้ว!', true);
+  };
+
+  document.getElementById('btn-admin-start-quiz-all').onclick = () => {
+    Multiplayer.sendAdminCommand({
+      action: 'start_quiz',
+      chatText: '📝 คุณครูสั่งเริ่มทำแบบทดสอบรวม Master Quiz 18 ข้อ พร้อมกันทั้งห้อง!'
+    });
+    showToast('📝 สั่งเปิดหน้าจอสอบ Master Quiz 18 ข้อ ให้นักเรียนทั้งห้องแล้ว!', true);
+  };
+
+  document.getElementById('btn-admin-bonus-all').onclick = () => {
+    Multiplayer.sendAdminCommand({
+      action: 'bonus',
+      bytes: 100,
+      chatText: '🎁 คุณครูแจกโบนัสพิเศษ +100 Bytes 🪙 และฟื้นฟูพลังงานเต็ม 100% ให้นักเรียนทั้งห้อง!'
+    });
+  };
+
+  document.getElementById('btn-admin-unlock-unit-coop').onclick = () => {
+    const u = getSelectedAdminUnit();
+    coopOnlineUnits.add(u);
+    Multiplayer.sendAdminCommand({
+      action: 'unlock_unit',
+      unit: u,
+      chatText: `✅ คุณครูปลดล็อกอาคารสัปดาห์ที่ ${u} ให้ออนไลน์ทั้งห้องเรียนแล้ว!`
+    });
+    renderTeacherDashboard();
+  };
+
+  document.getElementById('btn-admin-unlock-all-coop').onclick = () => {
+    for (let u = 1; u <= TOTAL_UNITS; u++) coopOnlineUnits.add(u);
+    Multiplayer.sendAdminCommand({
+      action: 'unlock_all',
+      chatText: '🏆 คุณครูปลดล็อกอาคารครบทั้ง 18 สัปดาห์ให้ห้องเรียนออนไลน์ 100%!'
+    });
+    renderTeacherDashboard();
+  };
+
+  document.getElementById('btn-admin-reset-coop').onclick = () => {
+    if (!confirm('ต้องการรีเซ็ตสถานะอาคาร Co-op ของห้องเรียนนี้ (สำหรับสอนห้องถัดไป) หรือไม่?')) return;
+    coopOnlineUnits.clear();
+    Multiplayer.sendAdminCommand({
+      action: 'reset_coop',
+      chatText: '🔄 คุณครูรีเซ็ตสถานะอาคาร Co-op ของห้องเรียนเพื่อเริ่มคาบเรียนใหม่'
+    });
+    renderTeacherDashboard();
+  };
+
+  // Teacher Personal God-Mode & Demo Tools
+  document.getElementById('btn-admin-godspeed').onclick = () => {
+    SoundFX.pickup();
+    teacherGodSpeed = !teacherGodSpeed;
+    if (teacherGodSpeed) state.energy = state.maxEnergy;
+    syncTeacherAdminUI();
+    updateHUD();
+    showToast(teacherGodSpeed ? '⚡ เปิดโหมดครูวิ่งไว 2x & พลังงานไม่จำกัดแล้ว!' : '⚡ ปิดโหมดวิ่งไว 2x แล้ว', true);
+  };
+
+  document.getElementById('btn-admin-open-lab-self').onclick = () => {
+    const u = getSelectedAdminUnit();
+    openLabModal(u, isUnitDone(u));
+  };
+
+  document.getElementById('btn-admin-warp-self').onclick = () => {
+    const u = getSelectedAdminUnit();
+    const bld = getBuildingForUnit(u);
+    if (bld) {
+      enterBuilding(bld.id);
+    } else {
+      const target = getUnitWarpCoords(u);
+      closeAllModals();
+      state.insideBuildingId = null;
+      state.player.x = target.x;
+      state.player.y = target.y;
+      spawnParticles(state.player.x + 16, state.player.y + 16, '#fde047', 24);
+      updateHUD();
+      showToast(`🚀 วาร์ปมายังสัปดาห์ที่ ${u}: ${target.title}`, true);
+    }
+  };
+
+  document.getElementById('btn-admin-unlock-all-self').onclick = () => {
+    for (let u = 1; u <= TOTAL_UNITS; u++) {
+      if (!state.completedUnits.includes(u)) state.completedUnits.push(u);
+      coopOnlineUnits.add(u);
+    }
+    state.activeQuestId = null;
+    SoundFX.questComplete();
+    saveGame();
+    updateHUD();
+    renderTeacherDashboard();
+    showToast('🔓 ปลดล็อกครบทั้ง 18 สัปดาห์บนเครื่องครูเรียบร้อยแล้ว!', true);
+  };
+
+  document.getElementById('btn-admin-all-items').onclick = () => {
+    Object.keys(GD.ITEMS).forEach((itemId) => {
+      if (!hasItem(itemId)) {
+        state.inventory.push({ id: itemId, qty: 1 });
+      }
+    });
+    state.bytes += 1000;
+    state.energy = state.maxEnergy;
+    SoundFX.questComplete();
+    renderHotbar();
+    updateHUD();
+    saveGame();
+    renderTeacherDashboard();
+    showToast('🎒 เสกไอเท็มครบทุกชิ้น + 1,000 Bytes 🪙 เข้ากระเป๋าครูแล้ว!', true);
+  };
+
+  document.getElementById('btn-admin-time-day').onclick = () => {
+    state.minutes = 8 * 60 + 30;
+    updateHUD();
+    showToast('☀️ เปลี่ยนเวลาในเกมเป็นช่วงเช้า (08:30 น.)', true);
+  };
+  document.getElementById('btn-admin-time-eve').onclick = () => {
+    state.minutes = 17 * 60 + 15;
+    updateHUD();
+    showToast('🌇 เปลี่ยนเวลาในเกมเป็นช่วงเย็น Golden Hour (17:15 น.)', true);
+  };
+  document.getElementById('btn-admin-time-night').onclick = () => {
+    state.minutes = 20 * 60;
+    updateHUD();
+    showToast('🌙 เปลี่ยนเวลาในเกมเป็นช่วงกลางคืน (20:00 น.)', true);
+  };
+
   // In-Game Chat Controls
   const chatInput = document.getElementById('chat-input');
   const sendChatNow = () => {
@@ -2751,6 +3678,8 @@
 
   // HUD Quick Menu Buttons
   document.getElementById('btn-multiplayer').onclick = () => openMultiplayerModal('connect');
+  document.getElementById('btn-teacher-admin').onclick = () => openMultiplayerModal('teacher');
+  syncTeacherAdminUI();
   document.getElementById('btn-codex').onclick = () => openCodexModal();
   document.getElementById('btn-quests').onclick = openQuestsModal;
   document.getElementById('btn-open-quests').onclick = openQuestsModal;
