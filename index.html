@@ -392,19 +392,19 @@
       <div id="modal-multiplayer" class="modal-window wood-panel large-modal hidden">
         <div class="modal-header">
           <div>
-            <h2>👥 ศูนย์เล่นกับเพื่อน • ตารางอันดับ • หน้าจอครูผู้สอน</h2>
-            <p id="mp-status-bar" class="modal-sub">สถานะ: ออฟไลน์ (เล่นคนเดียว) — รองรับทั้งรหัสห้องออนไลน์ &amp; LAN ห้องแล็บ</p>
+            <h2>👥 ศูนย์ห้องเรียน • ตารางจัดอันดับ • โหมดแอดมินครู</h2>
+            <p id="mp-status-bar" class="modal-sub">สถานะ: ออฟไลน์ (เล่นคนเดียว) — การตั้งค่าห้องออนไลน์จัดการโดยคุณครูผู้สอน</p>
           </div>
           <button class="close-btn" data-close="modal-multiplayer">✕</button>
         </div>
         <div class="mp-tabs">
-          <button class="mp-tab-btn active" data-mptab="connect">🌐 เชื่อมต่อห้อง (ออนไลน์ / LAN)</button>
-          <button class="mp-tab-btn" data-mptab="leaderboard">🏆 ตารางจัดอันดับ (Leaderboard)</button>
-          <button class="mp-tab-btn" data-mptab="teacher">👑 โหมดแอดมินครู &amp; ติดตามห้องเรียน</button>
+          <button id="mp-tab-btn-connect" class="mp-tab-btn hidden" data-mptab="connect">🌐 เชื่อมต่อห้อง (สำหรับครูเท่านั้น)</button>
+          <button class="mp-tab-btn active" data-mptab="leaderboard">🏆 ตารางจัดอันดับ (Leaderboard)</button>
+          <button class="mp-tab-btn" data-mptab="teacher">👑 โหมดแอดมินครู &amp; จัดการห้องเรียน</button>
         </div>
         <div class="modal-body-scroll">
-          <!-- Tab 1: Connect -->
-          <div id="mp-pane-connect" class="mp-pane">
+          <!-- Tab 1: Connect (Teacher Admin Only — Hidden from students) -->
+          <div id="mp-pane-connect" class="mp-pane hidden">
             <div class="mp-coop-banner">
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
                 <input id="mp-coop-toggle" type="checkbox" checked />
@@ -476,7 +476,7 @@
           </div>
 
           <!-- Tab 2: Leaderboard -->
-          <div id="mp-pane-leaderboard" class="mp-pane hidden">
+          <div id="mp-pane-leaderboard" class="mp-pane">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
               <div><strong>🏆 อันดับคะแนนในห้องเรียนแบบเรียลไทม์</strong> (สูตร: สัปดาห์ที่ผ่าน×100 + Master Quiz×20 + Bytes)</div>
               <button id="btn-lb-refresh" class="wood-btn small-btn">🔄 รีเฟรช</button>
@@ -489,7 +489,7 @@
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
               <div>
                 <strong>👑 ศูนย์บัญชาการแอดมินสำหรับคุณครู &amp; ติดตามความก้าวหน้าทั้งห้อง (Teacher Admin Mode)</strong>
-                <div style="font-size:12.5px;color:#6e4526;">ควบคุมห้องเรียนแบบเรียลไทม์ ส่งประกาศด่วน เรียกตัวนักเรียน สั่งเปิดแล็บ/จัดสอบพร้อมกัน และดูคะแนนสด</div>
+                <div style="font-size:12.5px;color:#6e4526;">ควบคุมห้องเรียนแบบเรียลไทม์ เชื่อมต่อ/จัดการห้องออนไลน์ ส่งประกาศด่วน เรียกตัวนักเรียน และดูคะแนนสด</div>
               </div>
               <button id="btn-export-csv" class="wood-btn primary-btn">📥 Export รายงานคะแนน (CSV สำหรับ Excel)</button>
             </div>
@@ -500,12 +500,12 @@
                 <span class="admin-crown-icon">👑</span>
                 <div>
                   <strong>ปลดล็อกโหมดแอดมินสำหรับคุณครู (Teacher Admin Console)</strong>
-                  <div style="font-size:12px;color:#6e4526;">ใส่รหัส PIN คุณครูเพื่อเปิดระบบควบคุมห้องเรียนและเครื่องมือสาธิตการสอน (รหัสเริ่มต้น: <code>1234</code>)</div>
+                  <div style="font-size:12px;color:#6e4526;">เฉพาะคุณครูผู้สอนเท่านั้น — กรอกรหัสผ่านแอดมินเพื่อเปิดระบบควบคุมห้องเรียนและการเชื่อมต่อห้องออนไลน์</div>
                 </div>
               </div>
               <div class="admin-gate-right">
-                <input id="input-teacher-pin" type="password" class="pixel-input" placeholder="รหัส PIN ครู (1234)" maxlength="16" style="width:150px;" />
-                <button id="btn-unlock-teacher-admin" class="wood-btn primary-btn">🔓 เปิดโหมดแอดมินครู</button>
+                <input id="input-teacher-pin" type="password" class="pixel-input" placeholder="กรอกรหัสผ่านแอดมิน" maxlength="32" style="width:180px;" autocomplete="off" />
+                <button id="btn-unlock-teacher-admin" class="wood-btn primary-btn">🔓 ปลดล็อกแอดมินครู</button>
               </div>
             </div>
 
