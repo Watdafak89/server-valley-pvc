@@ -646,7 +646,7 @@ window.GAME_DATA = (function () {
     },
     {
       id: 'student_ton',
-      name: 'ต้น เด็กปวช.สายเครือข่าย',
+      name: 'ต้น เด็กปวช.สายไอที',
       role: '🧑‍💻 นักศึกษาฝึกงานไอที (โซน 1)',
       tx: 17, ty: 11,
       patrol: [
