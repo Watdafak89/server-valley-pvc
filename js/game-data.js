@@ -307,7 +307,7 @@ window.GAME_DATA = (function () {
     { id: 'rest_spot', kind: 'bed', tx: 10, ty: 7, label: 'พักผ่อนที่บ้านพัก (ฟื้นพลังงานเต็ม 100%)' },
     { id: 'it_shop', kind: 'shop', tx: 35, ty: 23, label: '🏪 เข้าซื้อของที่ห้างสรรพสินค้าไอที (Server Valley IT General Store)' },
     { id: 'warp_sign', kind: 'warp', tx: 13, ty: 10, tw: 2, label: '🗺️ ป้ายสถานีวาร์ปด่วนใหญ่ (เดินทางไปทั้ง 4 โซน / เปิดแผนที่ M)' },
-    { id: 'arcade_zone1', kind: 'arcade', tx: 10, ty: 10, cabinetColor: '#ec4899', gameMode: 'catcher', label: '🕹️ ตู้เกมอาร์เคด (เล่นมินิเกมรับแพ็กเก็ต & งูไซเบอร์ แลกเหรียญ Bytes!)' },
+    { id: 'arcade_zone1', kind: 'arcade', tx: 36, ty: 15, cabinetColor: '#ec4899', gameMode: 'catcher', label: '🕹️ ตู้เกมอาร์เคดข้างบ้านช่างเทคนิค (เล่นมินิเกมรับแพ็กเก็ต & งูไซเบอร์ แลกเหรียญ Bytes!)' },
     { id: 'arcade_plaza', kind: 'arcade', tx: 38, ty: 24, cabinetColor: '#06b6d4', gameMode: 'snake', label: '🕹️ ตู้เกมอาร์เคดจัตุรัสกลาง (เล่นมินิเกม Cyber Snake & Packet Catcher!)' }
   ];
 

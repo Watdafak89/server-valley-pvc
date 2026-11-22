@@ -489,7 +489,7 @@
       if ((tx === 41 || tx === 42) && ty === 24) return true;
       if ((tx === 12 || tx === 13) && ty === 14) return true;
       if ((tx === 13 || tx === 14) && ty === 10) return true;
-      if (tx === 10 && ty === 10) return true;
+      if (tx === 36 && ty === 15) return true;
       if (tx === 38 && ty === 24) return true;
 
       // Outdoor Town & Shopkeeper NPCs hitbox (supports both stationary and walking NPCs!)
