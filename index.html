@@ -94,11 +94,16 @@
       <div id="quest-tracker" class="wood-panel quest-tracker-box">
         <div class="tracker-header">
           <span>📌 เควสปัจจุบัน</span>
-          <button id="btn-open-quests" class="mini-icon-btn" title="ดูรายการเควสทั้งหมด (Q)">Q</button>
+          <div style="display:flex; gap:5px; align-items:center;">
+            <button id="btn-open-quests" class="mini-icon-btn" title="ดูรายการเควสทั้งหมด (Q)">📜 เควส (Q)</button>
+            <button id="btn-quest-collapse" class="mini-icon-btn" title="ย่อ/แสดงกรอบเควส">🔽 ย่อ</button>
+          </div>
         </div>
-        <div id="tracker-title" class="tracker-title">หน่วยที่ 1: ปลุกเครือข่ายหมู่บ้าน</div>
-        <div id="tracker-objective" class="tracker-objective">ไปคุยกับผู้ใหญ่บ้านลุงแอดมินที่ลานกลางหมู่บ้าน</div>
-        <div id="tracker-direction" class="tracker-direction">🧭 ทิศทาง: ด้านหน้าบ้านพัก</div>
+        <div id="quest-tracker-body">
+          <div id="tracker-title" class="tracker-title">หน่วยที่ 1: ปลุกเครือข่ายหมู่บ้าน</div>
+          <div id="tracker-objective" class="tracker-objective">ไปคุยกับผู้ใหญ่บ้านลุงแอดมินที่ลานกลางหมู่บ้าน</div>
+          <div id="tracker-direction" class="tracker-direction">🧭 ทิศทาง: ด้านหน้าบ้านพัก</div>
+        </div>
       </div>
     </div>
 
@@ -138,7 +143,7 @@
       <div class="chat-panel wood-panel">
         <div class="chat-header">
           <span id="chat-room-badge">💬 แชทในห้อง</span>
-          <button id="btn-chat-collapse" class="mini-icon-btn" title="ย่อ/ขยายแชท">−</button>
+          <button id="btn-chat-collapse" class="mini-icon-btn" title="ย่อ/แสดงช่องแชท">🔽 ย่อ</button>
         </div>
         <div id="chat-body-wrap">
           <div id="chat-messages" class="chat-messages"></div>
