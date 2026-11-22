@@ -2808,6 +2808,89 @@ window.Sprites = (function () {
     });
   }
 
+  // ==================== 2.5D RETRO NEON ARCADE CABINET (PLAYABLE MINI-GAME MACHINE) ====================
+  function drawArcadeCabinet(ctx, wx, wy, accentColor = '#ec4899', tick = 0) {
+    const ol = '#1e1026';
+    const pulse = 0.65 + 0.35 * Math.sin(tick / 9);
+    const bodyHi = shadeHex(accentColor, 0.25);
+    const bodySh = shadeHex(accentColor, -0.35);
+
+    // 2.5D Ground shadow + subtle neon underglow
+    fillEllipse(ctx, wx + 17, wy + 29, 17, 5.5, 'rgba(12, 16, 28, 0.44)');
+    fillEllipse(ctx, wx + 16, wy + 28, 13, 3.8, `rgba(56, 189, 248, ${0.22 * pulse})`);
+
+    // 3D Extruded Right Side Panel
+    ctx.beginPath();
+    ctx.moveTo(wx + 25, wy - 18);
+    ctx.lineTo(wx + 31, wy - 13);
+    ctx.lineTo(wx + 31, wy + 25);
+    ctx.lineTo(wx + 25, wy + 29);
+    ctx.closePath();
+    ctx.fillStyle = bodySh;
+    ctx.fill();
+    ctx.strokeStyle = ol;
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+
+    // Main Cabinet Front Body
+    const cabGrad = ctx.createLinearGradient(wx + 3, wy - 18, wx + 25, wy + 29);
+    cabGrad.addColorStop(0, '#312e81');
+    cabGrad.addColorStop(0.5, '#1e1b4b');
+    cabGrad.addColorStop(1, '#0f172a');
+    fillRoundRect(ctx, wx + 3, wy - 18, 22, 47, 3, cabGrad, ol, 1.5);
+
+    // Neon Side Trim Stripes
+    ctx.fillStyle = accentColor;
+    ctx.fillRect(wx + 4.5, wy - 16, 2, 43);
+    ctx.fillRect(wx + 21.5, wy - 16, 2, 43);
+
+    // Illuminated Top Marquee Sign ("ARCADE")
+    const mqGrad = ctx.createLinearGradient(wx + 4, wy - 17, wx + 24, wy - 9);
+    mqGrad.addColorStop(0, bodyHi);
+    mqGrad.addColorStop(1, accentColor);
+    fillRoundRect(ctx, wx + 4, wy - 17, 20, 8, 2, mqGrad, ol, 1.1);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 6px Silkscreen, Kanit, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('GAME', wx + 14, wy - 11);
+
+    // Glowing Animated CRT Game Screen
+    fillRoundRect(ctx, wx + 6, wy - 7, 16, 14, 2, '#020617', '#64748b', 1.1);
+    const scrGrad = ctx.createLinearGradient(wx + 7, wy - 6, wx + 21, wy + 6);
+    scrGrad.addColorStop(0, '#0f172a');
+    scrGrad.addColorStop(1, '#1e3a5f');
+    fillRoundRect(ctx, wx + 7, wy - 6, 14, 12, 1.2, scrGrad);
+
+    // Tiny animated pixel sprites moving on the CRT screen!
+    const pxPos = wx + 9 + Math.floor((Math.sin(tick / 12) + 1) * 4.5);
+    ctx.fillStyle = '#4ade80';
+    ctx.fillRect(pxPos, wy + 2.5, 3, 2);
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(wx + 9 + ((Math.floor(tick / 8) * 3) % 10), wy - 4 + (Math.floor(tick / 5) % 6), 2, 2);
+    ctx.fillStyle = '#f472b6';
+    ctx.fillRect(wx + 18 - ((Math.floor(tick / 10) * 2) % 9), wy - 3 + (Math.floor(tick / 6) % 5), 2, 2);
+
+    // 2.5D Angled Joystick & Arcade Buttons Deck
+    fillRoundRect(ctx, wx + 2, wy + 8, 24, 7, 2, '#475569', ol, 1.2);
+    // Red Joystick Ball
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(wx + 8, wy + 12);
+    ctx.lineTo(wx + 8 + Math.sin(tick / 15) * 1.2, wy + 7.5);
+    ctx.stroke();
+    fillEllipse(ctx, wx + 8 + Math.sin(tick / 15) * 1.2, wy + 7, 2.0, 2.0, '#ef4444', ol, 0.8);
+    // Colorful Arcade Action Buttons
+    fillEllipse(ctx, wx + 15.5, wy + 11.5, 1.4, 1.1, '#fde047', ol, 0.6);
+    fillEllipse(ctx, wx + 19.5, wy + 10.5, 1.4, 1.1, '#38bdf8', ol, 0.6);
+    fillEllipse(ctx, wx + 22.5, wy + 12.0, 1.3, 1.0, '#4ade80', ol, 0.6);
+
+    // Coin Slot Door at Bottom
+    fillRoundRect(ctx, wx + 9, wy + 18, 10, 8, 1.5, '#0f172a', '#475569', 0.9);
+    fillRoundRect(ctx, wx + 11, wy + 20, 2.5, 3.5, 0.5, '#ef4444');
+    fillRoundRect(ctx, wx + 15, wy + 20, 2.5, 3.5, 0.5, '#ef4444');
+  }
+
   // ==================== 2.5D VILLAGE STREET LAMP ====================
   function drawLamp(ctx, wx, wy, nightFactor) {
     const ol = '#18181b';
@@ -3037,6 +3120,7 @@ window.Sprites = (function () {
     drawCrate,
     drawFountain,
     drawWarpBoard,
+    drawArcadeCabinet,
     drawBench,
     drawLamp
   };

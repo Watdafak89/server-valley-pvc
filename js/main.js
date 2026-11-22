@@ -484,11 +484,13 @@
         }
       }
 
-      // Trees O(1) lookup & Central Plaza Fountain & Admin Farmyard Well & Grand Fast-Travel Warp Board
+      // Trees O(1) lookup & Central Plaza Fountain & Admin Farmyard Well & Grand Fast-Travel Warp Board & Arcade Cabinets
       if (treeLookup.has(tx + ',' + ty)) return true;
       if ((tx === 41 || tx === 42) && ty === 24) return true;
       if ((tx === 12 || tx === 13) && ty === 14) return true;
       if ((tx === 13 || tx === 14) && ty === 10) return true;
+      if (tx === 10 && ty === 10) return true;
+      if (tx === 38 && ty === 24) return true;
 
       // Outdoor Town & Shopkeeper NPCs hitbox (supports both stationary and walking NPCs!)
       if (GD.TOWN_NPCS) {
@@ -678,6 +680,8 @@
         openShopModal();
       } else if (target.obj.kind === 'warp') {
         openMapModal();
+      } else if (target.obj.kind === 'arcade') {
+        openArcadeModal(target.obj.gameMode || 'catcher');
       }
       return;
     }
@@ -1061,6 +1065,7 @@
 
   function closeAllModals() {
     const wasCodex = activeModalId === 'modal-codex';
+    if (activeModalId === 'modal-arcade') stopArcadeLoop();
     modalBackdrop.classList.add('hidden');
     document.querySelectorAll('.modal-window').forEach((m) => m.classList.add('hidden'));
     activeModalId = null;
@@ -2188,18 +2193,28 @@
     // 2. Y-Sorted Renderables with Viewport Culling for fast 4x Map rendering
     const renderList = [];
 
-    // Grand 2.5D Fast-Travel Warp Board (2-tile wide roofed map monument moved to Zone 1 Village Entrance)
+    // Grand 2.5D Fast-Travel Warp Board & Retro Arcade Mini-Game Cabinets
     GD.SPECIAL_PROPS.forEach((sp) => {
-      if (sp.kind !== 'warp') return;
+      if (sp.kind !== 'warp' && sp.kind !== 'arcade') return;
       if (sp.tx < startX - 3 || sp.tx > endX + 3 || sp.ty < startY - 3 || sp.ty > endY + 3) return;
       const wx = sp.tx * TILE;
       const wy = sp.ty * TILE;
-      renderList.push({
-        y: wy + 28,
-        draw: () => {
-          Sprites.drawWarpBoard(ctx, wx, wy, tick);
-        }
-      });
+      if (sp.kind === 'warp') {
+        renderList.push({
+          y: wy + 28,
+          draw: () => {
+            Sprites.drawWarpBoard(ctx, wx, wy, tick);
+          }
+        });
+      } else if (sp.kind === 'arcade') {
+        renderList.push({
+          y: wy + 29,
+          draw: () => {
+            Sprites.drawArcadeCabinet(ctx, wx, wy, sp.cabinetColor || '#ec4899', tick);
+            drawFloatingMarker(ctx, wx + 16, wy - 26, '🕹️', sp.cabinetColor || '#ec4899');
+          }
+        });
+      }
     });
 
     // Town Scenery & Store Buildings (Grand 7x4 IT General Store, Café & Bakery, Tech Bookstore, Glass Greenhouse, Red Barn & Silo, Hardware Forge & Villager Cottages!)
@@ -3195,6 +3210,14 @@
       if (!activeModalId) {
         e.preventDefault();
         interact();
+      }
+      return;
+    }
+
+    if (activeModalId === 'modal-arcade') {
+      handleArcadeKey(e.code, e.key);
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+        e.preventDefault();
       }
       return;
     }
@@ -4195,6 +4218,324 @@
   });
   document.querySelector('.dpad-btn[data-action="interact"]').onclick = interact;
   document.querySelector('.touch-use-btn').onclick = useSelectedItem;
+
+  // ==================== RETRO ARCADE MINI-GAME ENGINE (PACKET CATCHER & CYBER SNAKE) ====================
+  const arcadeCanvas = document.getElementById('arcade-canvas');
+  const arcadeCtx = arcadeCanvas ? arcadeCanvas.getContext('2d') : null;
+  let arcadeMode = 'catcher'; // 'catcher' | 'snake'
+  let arcadeRaf = null;
+  let arcadeState = null;
+  let arcadeBest = { catcher: 0, snake: 0 };
+  try {
+    const ab = JSON.parse(localStorage.getItem('sv_arcade_best') || '{}');
+    if (ab && typeof ab.catcher === 'number') arcadeBest.catcher = ab.catcher;
+    if (ab && typeof ab.snake === 'number') arcadeBest.snake = ab.snake;
+  } catch (e) {}
+
+  function stopArcadeLoop() {
+    if (arcadeRaf) {
+      cancelAnimationFrame(arcadeRaf);
+      arcadeRaf = null;
+    }
+    if (arcadeState) arcadeState.running = false;
+  }
+
+  function updateArcadeHUD(statusTxt = '') {
+    const scEl = document.getElementById('arcade-score-label');
+    const bsEl = document.getElementById('arcade-best-label');
+    const stEl = document.getElementById('arcade-status-label');
+    const btnC = document.getElementById('btn-arcade-mode-catcher');
+    const btnS = document.getElementById('btn-arcade-mode-snake');
+    if (scEl) scEl.textContent = `🎯 คะแนน: ${arcadeState ? arcadeState.score : 0}`;
+    if (bsEl) bsEl.textContent = `🏆 สถิติสูงสุด: ${arcadeBest[arcadeMode] || 0}`;
+    if (stEl && statusTxt) stEl.textContent = statusTxt;
+    if (btnC) btnC.classList.toggle('primary-btn', arcadeMode === 'catcher');
+    if (btnS) btnS.classList.toggle('primary-btn', arcadeMode === 'snake');
+  }
+
+  function finishArcadeRound(reasonText) {
+    if (!arcadeState || !arcadeState.running) return;
+    arcadeState.running = false;
+    const score = arcadeState.score || 0;
+    if (score > (arcadeBest[arcadeMode] || 0)) {
+      arcadeBest[arcadeMode] = score;
+      try { localStorage.setItem('sv_arcade_best', JSON.stringify(arcadeBest)); } catch (e) {}
+    }
+    const rewardBytes = Math.min(80, Math.floor(score / 2));
+    if (rewardBytes > 0) {
+      state.bytes += rewardBytes;
+      updateHUD();
+      saveGame();
+      SoundFX.questComplete();
+      showToast(`🕹️ จบเกมอาร์เคด! ได้ ${score} คะแนน — รับรางวัล +${rewardBytes} Bytes 🪙`, true);
+    } else {
+      SoundFX.error();
+    }
+    updateArcadeHUD(reasonText || `จบเกม! (+${rewardBytes}🪙)`);
+  }
+
+  function startArcadeGame(mode = arcadeMode) {
+    stopArcadeLoop();
+    arcadeMode = mode;
+    const W = 440;
+    const H = 300;
+    const hintEl = document.getElementById('arcade-controls-hint');
+
+    if (mode === 'catcher') {
+      arcadeState = {
+        running: true,
+        score: 0,
+        lives: 3,
+        paddleX: W / 2 - 36,
+        paddleW: 72,
+        items: [],
+        spawnTick: 0,
+        tick: 0
+      };
+      if (hintEl) hintEl.innerHTML = '📡 <strong>Packet Catcher:</strong> กด <strong>A/D</strong> หรือ <strong>◀ ▶</strong> (หรือแตะบนจอ) รับแพ็กเก็ต 🟢/🪙 หลบไวรัส 👾 (3 ชีวิต)';
+      updateArcadeHUD('❤️ ชีวิต: 3');
+    } else {
+      arcadeState = {
+        running: true,
+        score: 0,
+        grid: 20,
+        cols: 22,
+        rows: 15,
+        snake: [{ x: 10, y: 7 }, { x: 9, y: 7 }, { x: 8, y: 7 }],
+        dir: { x: 1, y: 0 },
+        nextDir: { x: 1, y: 0 },
+        food: { x: 15, y: 7 },
+        lastStep: performance.now(),
+        stepMs: 118
+      };
+      if (hintEl) hintEl.innerHTML = '🐍 <strong>Cyber Snake:</strong> กด <strong>WASD</strong> หรือ <strong>ลูกศร ▲▼◀▶</strong> บังคับงูเก็บเหรียญ Bytes 🪙 ห้ามชนกำแพงหรือหางตัวเอง!';
+      updateArcadeHUD('🐍 กำลังเล่น!');
+    }
+
+    const stepArcade = (now) => {
+      if (!arcadeCtx || activeModalId !== 'modal-arcade') {
+        stopArcadeLoop();
+        return;
+      }
+      drawArcadeFrame(now);
+      if (arcadeState && arcadeState.running) {
+        arcadeRaf = requestAnimationFrame(stepArcade);
+      }
+    };
+    arcadeRaf = requestAnimationFrame(stepArcade);
+  }
+
+  function drawArcadeFrame(now) {
+    if (!arcadeCtx || !arcadeState) return;
+    const ctxA = arcadeCtx;
+    const W = 440;
+    const H = 300;
+    ctxA.clearRect(0, 0, W, H);
+
+    // Retro Neon Cyber Grid Background
+    ctxA.fillStyle = '#020617';
+    ctxA.fillRect(0, 0, W, H);
+    ctxA.strokeStyle = 'rgba(56, 189, 248, 0.12)';
+    ctxA.lineWidth = 1;
+    for (let x = 0; x <= W; x += 20) {
+      ctxA.beginPath(); ctxA.moveTo(x, 0); ctxA.lineTo(x, H); ctxA.stroke();
+    }
+    for (let y = 0; y <= H; y += 20) {
+      ctxA.beginPath(); ctxA.moveTo(0, y); ctxA.lineTo(W, y); ctxA.stroke();
+    }
+
+    if (arcadeMode === 'catcher') {
+      const st = arcadeState;
+      if (st.running) {
+        st.tick++;
+        const spd = 6.2;
+        if (keys['KeyA'] || keys['ArrowLeft']) st.paddleX -= spd;
+        if (keys['KeyD'] || keys['ArrowRight']) st.paddleX += spd;
+        st.paddleX = Math.max(4, Math.min(W - st.paddleW - 4, st.paddleX));
+
+        st.spawnTick++;
+        const spawnGap = Math.max(18, 42 - Math.floor(st.score / 5));
+        if (st.spawnTick >= spawnGap) {
+          st.spawnTick = 0;
+          const roll = Math.random();
+          const kind = roll < 0.28 ? 'virus' : roll < 0.45 ? 'gold' : 'packet';
+          st.items.push({
+            x: 18 + Math.random() * (W - 36),
+            y: -14,
+            vy: 2.3 + Math.min(3.4, st.score * 0.04) + Math.random() * 1.1,
+            kind
+          });
+        }
+
+        for (let i = st.items.length - 1; i >= 0; i--) {
+          const it = st.items[i];
+          it.y += it.vy;
+          // Catch collision with Firewall Paddle
+          if (it.y >= H - 36 && it.y <= H - 14 && it.x >= st.paddleX - 8 && it.x <= st.paddleX + st.paddleW + 8) {
+            st.items.splice(i, 1);
+            if (it.kind === 'virus') {
+              st.lives--;
+              SoundFX.error();
+              updateArcadeHUD(`❤️ ชีวิต: ${st.lives}`);
+              if (st.lives <= 0) finishArcadeRound('💥 โดนไวรัส! จบเกม');
+            } else {
+              st.score += it.kind === 'gold' ? 5 : 2;
+              SoundFX.pickup();
+              updateArcadeHUD(`❤️ ชีวิต: ${st.lives}`);
+            }
+            continue;
+          }
+          if (it.y > H + 16) st.items.splice(i, 1);
+        }
+      }
+
+      // Draw Falling Packets & Viruses
+      st.items.forEach((it) => {
+        ctxA.save();
+        ctxA.font = 'bold 18px Kanit, sans-serif';
+        ctxA.textAlign = 'center';
+        if (it.kind === 'virus') {
+          ctxA.fillStyle = '#ef4444';
+          ctxA.beginPath(); ctxA.arc(it.x, it.y, 11, 0, Math.PI * 2); ctxA.fill();
+          ctxA.fillText('👾', it.x, it.y + 6);
+        } else if (it.kind === 'gold') {
+          ctxA.fillStyle = '#f59e0b';
+          ctxA.beginPath(); ctxA.arc(it.x, it.y, 11, 0, Math.PI * 2); ctxA.fill();
+          ctxA.fillText('🪙', it.x, it.y + 6);
+        } else {
+          ctxA.fillStyle = '#10b981';
+          ctxA.fillRect(it.x - 10, it.y - 8, 20, 16);
+          ctxA.strokeStyle = '#a7f3d0';
+          ctxA.lineWidth = 1.5;
+          ctxA.strokeRect(it.x - 10, it.y - 8, 20, 16);
+          ctxA.fillStyle = '#022c22';
+          ctxA.font = 'bold 9px monospace';
+          ctxA.fillText('PKT', it.x, it.y + 3);
+        }
+        ctxA.restore();
+      });
+
+      // Draw Server Catcher Paddle
+      ctxA.fillStyle = '#38bdf8';
+      ctxA.fillRect(st.paddleX, H - 26, st.paddleW, 13);
+      ctxA.strokeStyle = '#e0f2fe';
+      ctxA.lineWidth = 2;
+      ctxA.strokeRect(st.paddleX, H - 26, st.paddleW, 13);
+      ctxA.fillStyle = '#082f49';
+      ctxA.font = 'bold 9.5px Kanit, sans-serif';
+      ctxA.textAlign = 'center';
+      ctxA.fillText('SERVER', st.paddleX + st.paddleW / 2, H - 16);
+    } else {
+      // Cyber Snake Mode
+      const st = arcadeState;
+      if (st.running && now - st.lastStep >= st.stepMs) {
+        st.lastStep = now;
+        st.dir = { ...st.nextDir };
+        const head = { x: st.snake[0].x + st.dir.x, y: st.snake[0].y + st.dir.y };
+        const hitWall = head.x < 0 || head.x >= st.cols || head.y < 0 || head.y >= st.rows;
+        const hitSelf = st.snake.some((seg) => seg.x === head.x && seg.y === head.y);
+        if (hitWall || hitSelf) {
+          finishArcadeRound('💥 ชนแล้ว! จบเกม');
+        } else {
+          st.snake.unshift(head);
+          if (head.x === st.food.x && head.y === st.food.y) {
+            st.score += 4;
+            st.stepMs = Math.max(72, 118 - Math.floor(st.score / 2));
+            SoundFX.pickup();
+            updateArcadeHUD('🐍 กำลังเล่น!');
+            let tries = 0;
+            do {
+              st.food = { x: Math.floor(Math.random() * st.cols), y: Math.floor(Math.random() * st.rows) };
+              tries++;
+            } while (st.snake.some((s) => s.x === st.food.x && s.y === st.food.y) && tries < 40);
+          } else {
+            st.snake.pop();
+          }
+        }
+      }
+
+      // Draw Glowing Food Byte Coin
+      const fx = st.food.x * st.grid + st.grid / 2;
+      const fy = st.food.y * st.grid + st.grid / 2;
+      ctxA.fillStyle = '#fde047';
+      ctxA.beginPath(); ctxA.arc(fx, fy, 7.5, 0, Math.PI * 2); ctxA.fill();
+      ctxA.fillStyle = '#78350f';
+      ctxA.font = 'bold 10px monospace';
+      ctxA.textAlign = 'center';
+      ctxA.fillText('B', fx, fy + 3.5);
+
+      // Draw Neon Cyber Snake
+      st.snake.forEach((seg, idx) => {
+        ctxA.fillStyle = idx === 0 ? '#4ade80' : idx % 2 === 0 ? '#10b981' : '#059669';
+        ctxA.fillRect(seg.x * st.grid + 2, seg.y * st.grid + 2, st.grid - 4, st.grid - 4);
+        ctxA.strokeStyle = '#bbf7d0';
+        ctxA.lineWidth = idx === 0 ? 1.8 : 0.8;
+        ctxA.strokeRect(seg.x * st.grid + 2, seg.y * st.grid + 2, st.grid - 4, st.grid - 4);
+      });
+    }
+
+    if (!arcadeState.running) {
+      ctxA.fillStyle = 'rgba(2, 6, 23, 0.72)';
+      ctxA.fillRect(0, 0, W, H);
+      ctxA.fillStyle = '#fde047';
+      ctxA.font = 'bold 22px Kanit, sans-serif';
+      ctxA.textAlign = 'center';
+      ctxA.fillText(`GAME OVER • ${arcadeState.score} คะแนน`, W / 2, H / 2 - 12);
+      ctxA.fillStyle = '#e2e8f0';
+      ctxA.font = 'bold 14px Kanit, sans-serif';
+      ctxA.fillText('กดปุ่ม "▶ เริ่มเล่น / เล่นใหม่" เพื่อเล่นต่อ!', W / 2, H / 2 + 18);
+    }
+  }
+
+  function handleArcadeKey(code, key) {
+    if (!arcadeState || !arcadeState.running) return;
+    if (arcadeMode === 'snake') {
+      const d = arcadeState.dir;
+      if ((code === 'ArrowUp' || code === 'KeyW') && d.y !== 1) arcadeState.nextDir = { x: 0, y: -1 };
+      else if ((code === 'ArrowDown' || code === 'KeyS') && d.y !== -1) arcadeState.nextDir = { x: 0, y: 1 };
+      else if ((code === 'ArrowLeft' || code === 'KeyA') && d.x !== 1) arcadeState.nextDir = { x: -1, y: 0 };
+      else if ((code === 'ArrowRight' || code === 'KeyD') && d.x !== -1) arcadeState.nextDir = { x: 1, y: 0 };
+    }
+  }
+
+  function openArcadeModal(initialMode = 'catcher') {
+    openModal('modal-arcade');
+    startArcadeGame(initialMode);
+  }
+
+  const btnArcCatcher = document.getElementById('btn-arcade-mode-catcher');
+  const btnArcSnake = document.getElementById('btn-arcade-mode-snake');
+  const btnArcStart = document.getElementById('btn-arcade-start');
+  if (btnArcCatcher) btnArcCatcher.onclick = () => { SoundFX.click(); startArcadeGame('catcher'); };
+  if (btnArcSnake) btnArcSnake.onclick = () => { SoundFX.click(); startArcadeGame('snake'); };
+  if (btnArcStart) btnArcStart.onclick = () => { SoundFX.click(); startArcadeGame(arcadeMode); };
+
+  const wireArcBtn = (id, dirCode) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      keys[dirCode] = true;
+      handleArcadeKey(dirCode, '');
+    });
+    const off = () => { keys[dirCode] = false; };
+    el.addEventListener('pointerup', off);
+    el.addEventListener('pointerleave', off);
+  };
+  wireArcBtn('btn-arcade-left', 'ArrowLeft');
+  wireArcBtn('btn-arcade-right', 'ArrowRight');
+  wireArcBtn('btn-arcade-up', 'ArrowUp');
+  wireArcBtn('btn-arcade-down', 'ArrowDown');
+
+  if (arcadeCanvas) {
+    arcadeCanvas.addEventListener('pointermove', (e) => {
+      if (arcadeMode === 'catcher' && arcadeState && arcadeState.running && e.buttons) {
+        const r = arcadeCanvas.getBoundingClientRect();
+        const mx = ((e.clientX - r.left) / r.width) * 440;
+        arcadeState.paddleX = Math.max(4, Math.min(440 - arcadeState.paddleW - 4, mx - arcadeState.paddleW / 2));
+      }
+    });
+  }
 
   // Boot Renderer
   window.addEventListener('resize', resizeCanvas);
