@@ -2022,7 +2022,7 @@
               ctx.font = 'bold 10px Kanit, sans-serif';
               ctx.textAlign = 'center';
               ctx.fillText(npc.name, layout.npcPos.x + 16, layout.npcPos.y + 39);
-              drawFloatingMarker(ctx, layout.npcPos.x + 16, layout.npcPos.y - 18, '!', '#ffcf33');
+              drawFloatingMarker(ctx, layout.npcPos.x + 16, layout.npcPos.y - 12, '!', '#ffcf33');
             }
           });
         }
@@ -2052,7 +2052,7 @@
                 };
                 if (peer.isTeacher) drawTeacherAdminAura(ctx, peer.rx + 16, peer.ry + 28, tick);
                 Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
-                if (peer.isTeacher) drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 18, tick);
+                if (peer.isTeacher) drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 10, tick);
                 const label = (peer.isTeacher ? '👑 ครู ' : '') + (peer.name || 'เพื่อนร่วมห้อง');
                 ctx.font = 'bold 10px Kanit, sans-serif';
                 const nw = Math.max(58, ctx.measureText(label).width + 14);
@@ -2065,7 +2065,7 @@
                 ctx.textAlign = 'center';
                 ctx.fillText(label, peer.rx + 16, peer.ry + 40);
                 if (peer.bubble && peer.bubbleUntil > nowMs) {
-                  drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 24, peer.bubble);
+                  drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 16, peer.bubble);
                 }
               }
             });
@@ -2079,7 +2079,7 @@
             if (isTeacherAdmin) drawTeacherAdminAura(ctx, state.player.x + 16, state.player.y + 28, tick);
             Sprites.drawCharacter(ctx, state.player.x, state.player.y - 6, GD.PLAYER_STYLE, state.player.dir, state.player.frame, 2, tick);
             if (isTeacherAdmin) {
-              drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 18, tick);
+              drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 10, tick);
               const tLabel = '👑 ครู ' + ((state.profile && state.profile.studentName) || 'ครูผู้สอน');
               ctx.font = 'bold 10px Kanit, sans-serif';
               const nw = Math.max(64, ctx.measureText(tLabel).width + 14);
@@ -2093,7 +2093,7 @@
               ctx.fillText(tLabel, state.player.x + 16, state.player.y + 40);
             }
             if (myBubble && myBubbleUntil > Date.now()) {
-              drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 26 : 16), myBubble);
+              drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 18 : 10), myBubble);
             }
           }
         });
@@ -2325,7 +2325,7 @@
             Sprites.drawCharacter(ctx, wx, wy - 6, tn.style, lookDir, walkFrame, 2, tick + idx * 19);
             // Floating role/greeting marker above NPC
             if (tn.marker) {
-              drawFloatingMarker(ctx, wx + 16, wy - 20, tn.marker, tn.markerColor || '#ffd54f');
+              drawFloatingMarker(ctx, wx + 16, wy - 14, tn.marker, tn.markerColor || '#ffd54f');
             }
             // Nameplate under NPC feet
             ctx.font = 'bold 9.5px Kanit, sans-serif';
@@ -2372,7 +2372,7 @@
             }
             Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
             if (peer.isTeacher) {
-              drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 18, tick);
+              drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 10, tick);
             }
             const label = (peer.isTeacher ? '👑 ครู ' : '') + (peer.name || 'เพื่อนร่วมห้อง');
             ctx.font = 'bold 10px Kanit, sans-serif';
@@ -2387,7 +2387,7 @@
             ctx.fillText(label, peer.rx + 16, peer.ry + 40);
 
             if (peer.bubble && peer.bubbleUntil > nowMs) {
-              drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 24, peer.bubble);
+              drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 16, peer.bubble);
             }
           }
         });
@@ -2412,7 +2412,7 @@
           tick
         );
         if (isTeacherAdmin) {
-          drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 18, tick);
+          drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 10, tick);
           const tLabel = '👑 ครู ' + ((state.profile && state.profile.studentName) || 'ครูผู้สอน');
           ctx.font = 'bold 10px Kanit, sans-serif';
           const nw = Math.max(64, ctx.measureText(tLabel).width + 14);
@@ -2426,7 +2426,7 @@
           ctx.fillText(tLabel, state.player.x + 16, state.player.y + 40);
         }
         if (myBubble && myBubbleUntil > Date.now()) {
-          drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 26 : 16), myBubble);
+          drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 18 : 10), myBubble);
         }
       }
     });
@@ -2739,7 +2739,11 @@
       { val: 'suit', label: '🕴️ สูทผูกไทด์' },
       { val: 'labcoat', label: '🥼 เสื้อกาวน์วิศวกร' },
       { val: 'vest', label: '🧶 เสื้อกั๊กไหมพรม' },
-      { val: 'cyber_armor', label: '⚡ เกราะ Cyber Neon' }
+      { val: 'cyber_armor', label: '⚡ เกราะ Cyber Neon' },
+      { val: 'ro_knight', label: '⚔️ เกราะอัศวิน Rune Knight (RO)' },
+      { val: 'ro_mage', label: '🔮 เสื้อคลุมจอมเวท High Wizard (RO)' },
+      { val: 'ro_assassin', label: '🗡️ ชุดนินจา Assassin Cross (RO)' },
+      { val: 'kafra_dress', label: '🎀 ชุดเมดสาว Kafra Service (RO)' }
     ],
     shirtColor: [
       { val: '#2a7b5f', name: 'เขียวแอดมิน' },
@@ -2773,18 +2777,26 @@
     hatStylePills: [
       { val: '', label: '✕ ไม่ใส่ส่วนบน' },
       { val: 'poring_hat', label: '🍮 หมวก Poring (RO)' },
+      { val: 'ghostring_hat', label: '👻 หมวกผี Ghostring (RO)' },
+      { val: 'deviruchi_hat', label: '👿 หมวกปีศาจ Deviruchi' },
       { val: 'valkyrie_helm', label: '🪶 หมวก Valkyrie Helm' },
-      { val: 'bapho_horns', label: '😈 เขา Baphomet Horns' },
-      { val: 'angel_halo', label: '😇 วงแหวน Angel Halo' },
-      { val: 'wizard_hat', label: '🧙 หมวกจอมเวท Wizard' },
+      { val: 'solar_god_helm', label: '☀️ มงกุฎสุริยเทพ Helm of Sun' },
+      { val: 'Lord_kaho', label: '👑 เขาเทพ Lord Kaho Horn' },
+      { val: 'bapho_horns', label: '😈 เขาบาโฟ Baphomet Horns' },
+      { val: 'magestic_goat', label: '🐐 เขาแพะ Majestic Goat' },
+      { val: 'feather_beret', label: '🪶 หมวกเบเร่ต์ขนนก Feather Beret' },
+      { val: 'drooping_cat', label: '🐈‍⬛ ตุ๊กตาแมวหมอบ Drooping Cat' },
+      { val: 'angel_halo', label: '😇 วงแหวนนางฟ้า Angel Halo' },
+      { val: 'wizard_hat', label: '🧙 หมวกจอมเวท Wizard Hat' },
       { val: 'corsair_hat', label: '🏴‍☠️ หมวกโจรสลัด Corsair' },
-      { val: 'alice_band', label: '🎀 ที่คาดผมเมด Alice' },
-      { val: 'apple_archer', label: '🍎 แอปเปิลปักธนู Archer' },
-      { val: 'bunny_band', label: '🐰 หูกระต่าย Kafra' },
-      { val: 'leaf_head', label: '🌱 ใบไม้ Smokie Leaf' },
-      { val: 'crown', label: '👑 มงกุฎราชา Crown' },
-      { val: 'catears', label: '🐱 หูแมวดำ Neko' },
-      { val: 'headphones', label: '🎧 หูฟังเกมมิ่ง' },
+      { val: 'alice_band', label: '🎀 ที่คาดผมเมด Alice Doll' },
+      { val: 'apple_archer', label: '🍎 แอปเปิลปักธนู Apple of Archer' },
+      { val: 'bunny_band', label: '🐰 หูกระต่าย Kafra Bunny' },
+      { val: 'leaf_head', label: '🌱 ใบไม้แรคคูน Smokie Leaf' },
+      { val: 'poopoo_hat', label: '💩 หมวกอุนจิในตำนาน Poo Poo Hat' },
+      { val: 'crown', label: '👑 มงกุฎราชา Golden Crown' },
+      { val: 'catears', label: '🐱 หูแมวดำ Neko Ears' },
+      { val: 'headphones', label: '🎧 หูฟังเกมมิ่ง RGB' },
       { val: 'straw', label: '👒 หมวกฟาง Stardew' }
     ],
     hatColor: [
@@ -2801,29 +2813,41 @@
       { val: 'angel_ears', label: '🪽 หูปีกนางฟ้า (Angel Wing Ears)' },
       { val: 'evil_ears', label: '🦇 หูปีกปีศาจ (Evil Wing Ears)' },
       { val: 'elf_ears', label: '🧝 หูเอลฟ์ (Elf Ears)' },
-      { val: 'robo_ears', label: '🤖 หูไซเบอร์ (Chii Ears)' },
+      { val: 'robo_ears', label: '🤖 หูไซเบอร์ (Chii Persocom)' },
       { val: 'angel_wing_back', label: '🕊️ ปีกนางฟ้าใหญ่ (Archangel Wings)' },
+      { val: 'fallen_angel_wing', label: '🖤 ปีกทูตสวรรค์ตกสวรรค์ (Fallen Angel)' },
       { val: 'devil_wing_back', label: '👿 ปีกเดวิลรุ้งดำ (Deviling Wings)' },
+      { val: 'dragon_bone_wing', label: '🦴 ปีกโครงกระดูกมังกร (Dragon Bone)' },
       { val: 'fairy_wing', label: '🦋 ปีกภูตผีเสื้อ (Fairy Wings)' },
+      { val: 'ice_crystal_wing', label: '❄️ ปีกคริสตัลน้ำแข็ง (Ice Wings)' },
       { val: 'golden_wing', label: '✨ ปีกทองคำ (Golden Wings)' },
-      { val: 'blush_stickers', label: '😊 แก้มแดง (Blush)' },
+      { val: 'peco_wing', label: '🐤 ปีกนกเปโกะ (Peco Peco Wings)' },
+      { val: 'giant_bow_back', label: '🎀 โบว์ยักษ์ติดหลัง (Giant Ribbon)' },
+      { val: 'blush_stickers', label: '😊 แก้มแดงชมพู (Blush)' },
       { val: 'monocle', label: '🧐 แว่นตาข้างเดียว (Monocle)' },
-      { val: 'eyepatch', label: '🏴‍☠️ ผ้าคาดตา (Eyepatch)' },
+      { val: 'eyepatch', label: '🏴‍☠️ ผ้าคาดตาโจรสลัด (Eyepatch)' },
       { val: 'cyclops_visor', label: '🚨 แว่นเลเซอร์ (Cyclops Visor)' },
+      { val: 'sunglasses_ro', label: '🕶️ แว่นดำแฟชั่น (RO Sunglasses)' },
+      { val: 'opera_masque', label: '🎭 หน้ากากแฟนทอม (Opera Masque)' },
       { val: 'floating_aura', label: '🔮 ลูกแก้วออร่า Lv.99 (Spirit Orbs)' }
     ],
     headLower: [
       { val: '', label: '✕ ไม่ใส่ส่วนล่าง' },
-      { val: 'pipe', label: '🪈 คาบไปป์ (Gentleman Pipe)' },
+      { val: 'pipe', label: '🪈 คาบไปป์พ่นควัน (Gentleman Pipe)' },
       { val: 'rose_mouth', label: '🌹 คาบดอกกุหลาบ (Romantic Rose)' },
       { val: 'toast_mouth', label: '🍞 คาบขนมปังทาแยม (Crunch Toast)' },
+      { val: 'donut_mouth', label: '🍩 คาบโดนัทสีชมพู (Sweet Donut)' },
       { val: 'fish_mouth', label: '🐟 คาบปลาสด (Tasty Fish)' },
+      { val: 'pirate_dagger', label: '🗡️ คาบมีดสั้นโจรสลัด (Pirate Dagger)' },
+      { val: 'Scroll_mouth', label: '📜 คาบคัมภีร์นินจา (Ninja Scroll)' },
+      { val: 'lollipop_mouth', label: '🍭 คาบอมยิ้ม (Candy Lollipop)' },
       { val: 'grass_leaf', label: '🌿 คาบใบหญ้า (Four-Leaf Clover)' },
-      { val: 'bubblegum', label: '🫧 เป่าหมากฝรั่ง (Bubblegum)' },
+      { val: 'bubblegum', label: '🫧 เป่าลูกโป่งหมากฝรั่ง (Bubblegum)' },
       { val: 'ninja_mask', label: '🥷 ผ้าปิดปากนินจา (Assassin Mask)' },
       { val: 'flu_mask', label: '😷 หน้ากากอนามัย (Flu Mask)' },
-      { val: 'gangster_scarf', label: '🧣 ผ้าโพกปากแดง (Gangster Mask)' },
-      { val: 'red_scarf', label: '🧣 ผ้าพันคอแดง (Crimson Scarf)' }
+      { val: 'gangster_scarf', label: '🧣 ผ้าโพกปากแก๊งสเตอร์ (Gangster Mask)' },
+      { val: 'red_scarf', label: '🧣 ผ้าพันคอแดง (Crimson Scarf)' },
+      { val: 'santa_beard', label: '🎅 เคราซานต้าขาวฟู (Santa Beard)' }
     ]
   };
 
@@ -2950,8 +2974,8 @@
         b.onclick = () => {
           SoundFX.click();
           custDraft[field] = opt.val;
-          if (field === 'hairStyle' && custDraft.hatColor && !['headphones', 'catears', 'crown', 'poring_hat', 'valkyrie_helm', 'bapho_horns', 'angel_halo', 'alice_band', 'apple_archer', 'bunny_band', 'leaf_head'].includes(custDraft.hatColor)) {
-            // Auto-remove full cap/straw hat when picking a hairstyle so player sees it clearly
+          if (field === 'hairStyle' && custDraft.hatColor && ['#c85a17', '#1e40af', '#6b46c1', '#2d3748', '#b91c1c', '#047857', 'straw'].includes(custDraft.hatColor)) {
+            // Auto-remove only full-coverage caps/straw hat when picking a hairstyle, keeping Ragnarok headgear on!
             custDraft.hatColor = '';
           }
           buildCustomizerUI();
@@ -2986,15 +3010,15 @@
       col.appendChild(g);
     };
 
-    addPillGroup('👑 แฟชั่นส่วนบน — หมวก & Headgear (Ragnarok Upper Headgear)', 'hatColor', CUSTOM_OPTIONS.hatStylePills);
+    addPillGroup('👑 แฟชั่นส่วนบน — หมวก & Headgear (Ragnarok Upper — 22 สไตล์)', 'hatColor', CUSTOM_OPTIONS.hatStylePills);
     addSwatchGroup('🧢 สีหมวกแก๊ป (Colored Caps — กด ✕ เพื่อถอดส่วนบน)', 'hatColor', CUSTOM_OPTIONS.hatColor);
-    addPillGroup('🪽 แฟชั่นส่วนกลาง — หู & ปีกหลัง (Ragnarok Middle Headgear & Wings)', 'headMiddle', CUSTOM_OPTIONS.headMiddle);
-    addPillGroup('🌹 แฟชั่นส่วนล่าง — ที่คาบปาก ผ้าปิดปาก & ไปป์ (Ragnarok Lower Headgear)', 'headLower', CUSTOM_OPTIONS.headLower);
+    addPillGroup('🪽 แฟชั่นส่วนกลาง — หู แว่น & ปีกหลัง (Ragnarok Middle & Wings — 20 สไตล์)', 'headMiddle', CUSTOM_OPTIONS.headMiddle);
+    addPillGroup('🌹 แฟชั่นส่วนล่าง — ที่คาบปาก ผ้าปิดปาก & ไปป์ (Ragnarok Lower — 15 สไตล์)', 'headLower', CUSTOM_OPTIONS.headLower);
     addPillGroup('💇 ทรงผม 2.5D (Hairstyle — 10 สไตล์)', 'hairStyle', CUSTOM_OPTIONS.hairStyle);
     addSwatchGroup('🎨 สีผม (Hair Color — 10 เฉดสี)', 'hairColor', CUSTOM_OPTIONS.hairColor);
     addPillGroup('😊 ใบหน้าและแว่นตา (Face & Eyewear — 8 สไตล์)', 'faceStyle', CUSTOM_OPTIONS.faceStyle);
     addSwatchGroup('🧑 สีผิว (Skin Tone)', 'skin', CUSTOM_OPTIONS.skin);
-    addPillGroup('👕 สไตล์ชุดแต่งกาย (Outfit Style — 8 สไตล์)', 'shirtStyle', CUSTOM_OPTIONS.shirtStyle);
+    addPillGroup('👕 สไตล์ชุดแต่งกาย & ชุดอาชีพ RO (Outfit Style — 12 สไตล์)', 'shirtStyle', CUSTOM_OPTIONS.shirtStyle);
     addSwatchGroup('🎨 สีชุดหลัก (Outfit Color)', 'shirtColor', CUSTOM_OPTIONS.shirtColor);
     addSwatchGroup('👖 สีกางเกง / เอี๊ยม (Pants Color)', 'pantsColor', CUSTOM_OPTIONS.pantsColor);
     addSwatchGroup('👟 สีรองเท้า (Shoes Color)', 'shoesColor', CUSTOM_OPTIONS.shoesColor);

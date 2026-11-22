@@ -87,15 +87,18 @@ window.Sprites = (function () {
     return res;
   }
 
-  // ==================== 2.5D VOLUMETRIC CHARACTER MODEL (10 HAIRSTYLES, 8 FACES, 8 OUTFITS, HEADGEAR) ====================
+  // ==================== 2.5D VOLUMETRIC CHARACTER MODEL (-25% WORLD PROPORTION, HIGH-DETAIL SHADING & RAGNAROK 3-SLOT FASHION) ====================
   function drawCharacter(ctx, x, y, style, dir = 'down', frame = 0, scale = 2, tick = 0) {
     ctx.save();
-    const offsetX = scale === 2 ? -4 : 0;
-    const offsetY = scale === 2 ? -14 : 0;
-    ctx.translate(Math.floor(x + offsetX), Math.floor(y + offsetY));
-    ctx.scale(scale, scale);
+    // Reduce in-world character model size by 25% (scale 2 -> effective 1.5, anchored cleanly at tile center x+16, feet y+33)
+    const isWorldSprite = scale === 2;
+    const effScale = isWorldSprite ? 1.5 : scale;
+    const offsetX = isWorldSprite ? 1.0 : 0;
+    const offsetY = isWorldSprite ? -6.5 : 0;
+    ctx.translate(x + offsetX, y + offsetY);
+    ctx.scale(effScale, effScale);
 
-    const ol = '#23140d';
+    const ol = '#21120b';
     const skin = style.skin || '#f6cfa6';
     const skinHi = shadeHex(skin, 0.28);
     const skinSh = shadeHex(skin, -0.18);
@@ -165,7 +168,7 @@ window.Sprites = (function () {
       fillEllipse(ctx, 17.0, 12.8 + by, 2.2, 5.2, ttGrad, ol, 0.85);
     }
 
-    const hasBackWing = ['angel_wing_back', 'devil_wing_back', 'fairy_wing', 'golden_wing'].includes(style.headMiddle);
+    const hasBackWing = ['angel_wing_back', 'devil_wing_back', 'fairy_wing', 'golden_wing', 'peco_wing', 'fallen_angel_wing', 'ice_crystal_wing', 'dragon_bone_wing', 'giant_bow_back'].includes(style.headMiddle);
     if (style.backpack && !hasBackWing && (dir === 'left' || dir === 'right' || dir === 'down')) {
       const bpX = dir === 'left' ? 12.8 : dir === 'right' ? 3.0 : 4.2;
       const bpW = dir === 'down' ? 11.6 : 4.2;
@@ -175,26 +178,42 @@ window.Sprites = (function () {
       fillRoundRect(ctx, bpX, 13.5 + by, bpW, 6.2, 2.2, bpGrad, ol, 0.85);
     }
 
-    // 3. 2.5D Volumetric Legs & Extruded 3D Sneakers/Boots
+    // 3. 2.5D High-Detail Volumetric Legs, Knee Folds & Extruded 3D Sneakers/Boots
     const drawLegAndShoe = (lx, lyOff, isBackLeg) => {
       const scaleDepth = isBackLeg ? 0.93 : 1.0;
       const legY = 19.6 + lyOff;
-      const pGrad = ctx.createLinearGradient(lx, legY, lx + 4.2 * scaleDepth, legY);
+      const legW = 4.2 * scaleDepth;
+      const pGrad = ctx.createLinearGradient(lx, legY, lx + legW, legY);
       pGrad.addColorStop(0, pantsHi);
       pGrad.addColorStop(0.45, pants);
       pGrad.addColorStop(1, pantsSh);
-      fillRoundRect(ctx, lx, legY, 4.2 * scaleDepth, 5.2, 1.6, pGrad, ol, 0.85);
+      fillRoundRect(ctx, lx, legY, legW, 5.2, 1.6, pGrad, ol, 0.85);
+      // Crisp knee highlight & cuff fold
+      fillRoundRect(ctx, lx + 0.6, legY + 1.4, legW - 1.2, 0.8, 0.3, 'rgba(255,255,255,0.16)');
+      fillRoundRect(ctx, lx + 0.3, legY + 3.1, legW - 0.6, 0.75, 0.3, pantsHi, ol, 0.45);
 
       const sy = legY + 3.8;
       const sw = 4.8 * scaleDepth;
       const shoeX = lx - 0.3 + (dir === 'left' ? -0.5 : dir === 'right' ? 0.5 : 0);
-      fillRoundRect(ctx, shoeX, sy + 1.2, sw, 2.1, 1.1, '#e2e8f0', ol, 0.8);
+      // 3D Rubber Sole & Tread
+      fillRoundRect(ctx, shoeX, sy + 1.2, sw, 2.1, 1.1, '#f1f5f9', ol, 0.8);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(shoeX + 0.6, sy + 2.3, sw - 1.2, 0.45);
+      // Shoe Upper & Tongue/Laces
       const sGrad = ctx.createRadialGradient(shoeX + sw * 0.35, sy + 0.6, 0.3, shoeX + sw * 0.5, sy + 1.2, sw);
       sGrad.addColorStop(0, shoesHi);
       sGrad.addColorStop(0.55, shoes);
       sGrad.addColorStop(1, shoesSh);
       fillRoundRect(ctx, shoeX, sy, sw, 2.3, 1.3, sGrad, ol, 0.8);
-      fillEllipse(ctx, shoeX + sw * 0.38, sy + 0.7, 0.9, 0.45, 'rgba(255,255,255,0.45)');
+      fillEllipse(ctx, shoeX + sw * 0.38, sy + 0.7, 0.95, 0.45, 'rgba(255,255,255,0.48)');
+      ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+      ctx.lineWidth = 0.45;
+      ctx.beginPath();
+      ctx.moveTo(shoeX + sw * 0.35, sy + 0.45);
+      ctx.lineTo(shoeX + sw * 0.65, sy + 0.45);
+      ctx.moveTo(shoeX + sw * 0.32, sy + 0.95);
+      ctx.lineTo(shoeX + sw * 0.68, sy + 0.95);
+      ctx.stroke();
     };
 
     if (dir === 'left') {
@@ -220,10 +239,14 @@ window.Sprites = (function () {
       aGrad.addColorStop(0, isBack ? sleeveCol : sleeveHi);
       aGrad.addColorStop(1, isBack ? sleeveDp : sleeveSh);
       fillRoundRect(ctx, ax, ay, 2.7, 4.8, 1.3, aGrad, ol, 0.8);
+      // Sleeve cuff band
+      fillRoundRect(ctx, ax + 0.15, ay + 3.4, 2.4, 0.95, 0.4, sleeveHi, ol, 0.5);
       const hGrad = ctx.createRadialGradient(ax + 1.1, ay + 4.7, 0.2, ax + 1.3, ay + 4.9, 1.6);
       hGrad.addColorStop(0, skinHi);
       hGrad.addColorStop(1, skinSh);
       fillEllipse(ctx, ax + 1.35, ay + 4.9, 1.25, 1.15, hGrad, ol, 0.75);
+      // Subtle thumb contour
+      fillEllipse(ctx, ax + (ax < 9 ? 1.9 : 0.8), ay + 4.75, 0.42, 0.38, skinHi);
     };
 
     if (dir === 'left') drawArm(11.4, armR, true);
@@ -310,8 +333,57 @@ window.Sprites = (function () {
         fillRoundRect(ctx, tx + 0.8, ty + 0.6, tw - 1.6, 1.2, 0.5, '#38bdf8');
         fillRoundRect(ctx, cx - 1.8, ty + 2.4, 3.6, 2.2, 0.7, '#0f172a', '#38bdf8', 0.7);
         fillEllipse(ctx, cx, ty + 3.5, 1.1, 0.7, '#67e8f9');
+      } else if (shirtStyle === 'ro_knight') {
+        // Ragnarok Rune Knight Armor with Metallic Breastplate, Gold Cross Trim & Pauldrons!
+        const plateGrad = ctx.createLinearGradient(tx, ty, tx + tw, ty + th);
+        plateGrad.addColorStop(0, '#f8fafc');
+        plateGrad.addColorStop(0.5, '#cbd5e1');
+        plateGrad.addColorStop(1, '#64748b');
+        fillRoundRect(ctx, tx + 1.1, ty + 0.8, tw - 2.2, th - 2.0, 1.4, plateGrad, ol, 0.65);
+        // Gold cross emblem on breastplate
+        fillRoundRect(ctx, cx - 0.45, ty + 1.5, 0.9, 3.8, 0.3, '#fbbf24');
+        fillRoundRect(ctx, cx - 1.8, ty + 2.6, 3.6, 0.85, 0.3, '#fbbf24');
+        // Shoulder pauldrons
+        fillEllipse(ctx, tx + 0.8, ty + 1.2, 1.6, 1.2, '#e2e8f0', '#b45309', 0.65);
+        fillEllipse(ctx, tx + tw - 0.8, ty + 1.2, 1.6, 1.2, '#e2e8f0', '#b45309', 0.65);
+      } else if (shirtStyle === 'ro_mage') {
+        // Ragnarok High Wizard Cloak with Gold Rune Trim & Arcane Gem Brooch!
+        fillRoundRect(ctx, cx - 1.6, ty + 0.5, 3.2, th - 0.8, 0.8, '#1e1b4b', '#fbbf24', 0.65);
+        // Gold shoulder stole
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(tx + 1.4, ty + 0.6);
+        ctx.lineTo(cx, ty + 3.0);
+        ctx.lineTo(tx + tw - 1.4, ty + 0.6);
+        ctx.stroke();
+        fillEllipse(ctx, cx, ty + 2.5, 1.1, 1.1, '#ef4444', '#fef08a', 0.55);
+      } else if (shirtStyle === 'ro_assassin') {
+        // Ragnarok Assassin Cross Garb with Crossed Chest Straps & Kunai Holders!
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(tx + 1.4, ty + 0.8); ctx.lineTo(tx + tw - 1.4, ty + th - 1.4);
+        ctx.moveTo(tx + tw - 1.4, ty + 0.8); ctx.lineTo(tx + 1.4, ty + th - 1.4);
+        ctx.stroke();
+        fillEllipse(ctx, cx, ty + 3.4, 1.2, 1.2, '#fbbf24', ol, 0.55);
+        fillRoundRect(ctx, tx + 0.5, ty + th - 1.8, tw - 1.0, 1.3, 0.4, '#b91c1c');
+      } else if (shirtStyle === 'kafra_dress') {
+        // Ragnarok Iconic Kafra Maid Apron with White Frills & Red Bow!
+        fillRoundRect(ctx, tx + 1.4, ty + 1.0, tw - 2.8, th - 1.4, 1.3, '#ffffff', '#cbd5e1', 0.55);
+        // Red chest bow
+        fillEllipse(ctx, cx - 0.9, ty + 1.6, 1.0, 0.65, '#e11d48', ol, 0.4);
+        fillEllipse(ctx, cx + 0.9, ty + 1.6, 1.0, 0.65, '#e11d48', ol, 0.4);
+        fillEllipse(ctx, cx, ty + 1.6, 0.55, 0.55, '#fb7185');
       }
-    } else if (style.backpack && hairStyle !== 'long') {
+      // Subtle 3D Rim Light along left torso edge
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+      ctx.lineWidth = 0.65;
+      ctx.beginPath();
+      ctx.moveTo(tx + 0.7, ty + 1.5);
+      ctx.lineTo(tx + 0.7, ty + th - 1.8);
+      ctx.stroke();
+    } else if (style.backpack && !hasBackWing && hairStyle !== 'long') {
       const bpGrad = ctx.createLinearGradient(5.5, 13.5 + by, 14.5, 20.5 + by);
       bpGrad.addColorStop(0, '#d89b52');
       bpGrad.addColorStop(0.5, '#9c5221');
@@ -359,7 +431,6 @@ window.Sprites = (function () {
       drawHairBack25D(ctx, hx, hy, by, hair, hairHi, hairSh, hairDeep, hairStyle, style, ol);
       if (style.headMiddle) {
         drawHeadMiddleFront25D(ctx, hx, hy, style.headMiddle, 'up', tick, ol);
-        drawHeadMiddleBack25D(ctx, 10.0, 15.0 + by, style.headMiddle, 'up', tick, ol);
       }
       if (style.headLower) {
         drawHeadLower25D(ctx, hx, hy, style.headLower, 'up', tick, ol);
@@ -371,10 +442,11 @@ window.Sprites = (function () {
       } else {
         drawSideFace25D(ctx, hx, hy, dir, faceStyle, blink, style, ol, skinHi, skinSh);
       }
+      // Fine hair strand texture lines before headgear
+      drawHairFront25D(ctx, hx, hy, by, dir, hair, hairHi, hairSh, hairDeep, hairStyle, style, ol);
       if (style.headMiddle) {
         drawHeadMiddleFront25D(ctx, hx, hy, style.headMiddle, dir, tick, ol);
       }
-      drawHairFront25D(ctx, hx, hy, by, dir, hair, hairHi, hairSh, hairDeep, hairStyle, style, ol);
       if (style.headLower) {
         drawHeadLower25D(ctx, hx, hy, style.headLower, dir, tick, ol);
       }
@@ -389,6 +461,17 @@ window.Sprites = (function () {
     fillEllipse(ctx, hx + 3.4, hy + 2.0, 1.7, 1.0, 'rgba(244, 102, 122, 0.45)');
     fillEllipse(ctx, hx - 0.15, hy + 1.0, 0.45, 0.55, skinHi);
     fillEllipse(ctx, hx + 0.2, hy + 1.35, 0.45, 0.35, skinSh);
+
+    // Subtle sculpted eyebrows & upper eyelid crease for higher facial fidelity
+    ctx.strokeStyle = shadeHex(style.hair || '#4a2c18', -0.25);
+    ctx.lineWidth = 0.7;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(hx - 2.6, hy - 0.6, 1.45, Math.PI * 1.18, Math.PI * 1.82);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(hx + 2.6, hy - 0.6, 1.45, Math.PI * 1.18, Math.PI * 1.82);
+    ctx.stroke();
 
     const drawGlossyEye = (ex, ey, isStar = false) => {
       fillRoundRect(ctx, ex - 1.35, ey - 1.5, 2.7, 3.0, 1.1, '#ffffff', ol, 0.55);
@@ -986,6 +1069,163 @@ window.Sprites = (function () {
       return;
     }
 
+    if (hatVal === 'ghostring_hat') {
+      // Ragnarok Ghostring Doll Hat (Floating pale ghost Poring with mischievous smile)
+      const gGrad = ctx.createRadialGradient(hx - 1.5, hy - 6.8, 0.6, hx, hy - 5.5, 6.2);
+      gGrad.addColorStop(0, '#ffffff');
+      gGrad.addColorStop(0.6, '#e2e8f0');
+      gGrad.addColorStop(1, '#94a3b8');
+      fillEllipse(ctx, hx, hy - 5.4, 5.6, 3.8, gGrad, '#334155', 0.9);
+      fillEllipse(ctx, hx, hy - 9.3, 1.1, 1.4, '#f8fafc', '#334155', 0.7);
+      if (dir !== 'up') {
+        fillEllipse(ctx, hx - 1.8, hy - 5.3, 0.7, 0.5, '#0f172a');
+        fillEllipse(ctx, hx + 1.8, hy - 5.3, 0.7, 0.5, '#0f172a');
+        fillEllipse(ctx, hx - 1.8, hy - 5.3, 0.3, 0.3, '#ef4444');
+        fillEllipse(ctx, hx + 1.8, hy - 5.3, 0.3, 0.3, '#ef4444');
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.arc(hx, hy - 4.5, 1.2, 0.1 * Math.PI, 0.9 * Math.PI);
+        ctx.stroke();
+      }
+      return;
+    }
+
+    if (hatVal === 'deviruchi_hat') {
+      // Ragnarok Deviruchi Cap (Dark Purple Demon Hood with Little Horns & WingTips)
+      const dGrad = ctx.createRadialGradient(hx - 1.5, hy - 6.0, 0.8, hx, hy - 4.2, 6.8);
+      dGrad.addColorStop(0, '#6d28d9');
+      dGrad.addColorStop(0.55, '#4c1d95');
+      dGrad.addColorStop(1, '#1e1b4b');
+      ctx.beginPath();
+      ctx.arc(hx, hy - 2.6, 6.3, Math.PI * 0.95, Math.PI * 2.05);
+      ctx.closePath();
+      ctx.fillStyle = dGrad;
+      ctx.fill();
+      ctx.strokeStyle = ol;
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+      // Little yellow demon horns on top
+      fillEllipse(ctx, hx - 3.6, hy - 7.4, 1.2, 1.9, '#fde047', ol, 0.7);
+      fillEllipse(ctx, hx + 3.6, hy - 7.4, 1.2, 1.9, '#fde047', ol, 0.7);
+      if (dir !== 'up') {
+        fillEllipse(ctx, hx - 2.0, hy - 4.8, 0.8, 0.45, '#ef4444');
+        fillEllipse(ctx, hx + 2.0, hy - 4.8, 0.8, 0.45, '#ef4444');
+      }
+      return;
+    }
+
+    if (hatVal === 'feather_beret') {
+      // Ragnarok Classic Blue Feather Beret with Tall White Plume
+      const bGrad = ctx.createRadialGradient(hx - 2, hy - 6, 0.8, hx, hy - 4.5, 6.8);
+      bGrad.addColorStop(0, '#60a5fa');
+      bGrad.addColorStop(0.55, '#2563eb');
+      bGrad.addColorStop(1, '#1e3a8a');
+      fillEllipse(ctx, hx - 0.6, hy - 5.2, 6.2, 2.7, bGrad, ol, 0.9);
+      fillRoundRect(ctx, hx - 5.4, hy - 4.5, 10.8, 1.2, 0.5, '#fbbf24', ol, 0.55);
+      // Tall white plume feather on side
+      ctx.save();
+      ctx.translate(hx + 4.2, hy - 5.2);
+      ctx.rotate(0.28);
+      fillEllipse(ctx, 0, -3.2, 1.4, 3.8, '#ffffff', ol, 0.7);
+      ctx.restore();
+      return;
+    }
+
+    if (hatVal === 'Lord_kaho') {
+      // Ragnarok Legendary Lord Kaho's Horn (Golden Demon Horns with Red Gem Circlet)
+      fillRoundRect(ctx, hx - 5.2, hy - 5.2, 10.4, 1.8, 0.8, '#fef08a', '#b45309', 0.8);
+      fillEllipse(ctx, hx, hy - 4.3, 1.3, 1.3, '#ef4444', ol, 0.6);
+      [-1, 1].forEach((side) => {
+        ctx.save();
+        ctx.translate(hx + side * 3.8, hy - 5.0);
+        ctx.scale(side, 1);
+        ctx.beginPath();
+        ctx.moveTo(0, 0.8);
+        ctx.quadraticCurveTo(2.4, -6.5, 0.6, -8.4);
+        ctx.quadraticCurveTo(4.6, -5.2, 1.8, 1.0);
+        ctx.closePath();
+        ctx.fillStyle = '#fde047';
+        ctx.fill();
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        ctx.restore();
+      });
+      return;
+    }
+
+    if (hatVal === 'drooping_cat') {
+      // Ragnarok Drooping Cat Doll resting on head (Black Neko with glowing yellow eyes)
+      fillEllipse(ctx, hx, hy - 5.8, 5.2, 3.0, '#1e293b', ol, 0.85);
+      // Cat ears
+      fillEllipse(ctx, hx - 3.6, hy - 8.2, 1.3, 1.6, '#1e293b', ol, 0.75);
+      fillEllipse(ctx, hx + 3.6, hy - 8.2, 1.3, 1.6, '#1e293b', ol, 0.75);
+      // Drooping paws hanging down left & right
+      fillRoundRect(ctx, hx - 5.4, hy - 4.6, 1.8, 2.4, 0.8, '#1e293b', ol, 0.65);
+      fillRoundRect(ctx, hx + 3.6, hy - 4.6, 1.8, 2.4, 0.8, '#1e293b', ol, 0.65);
+      if (dir !== 'up') {
+        fillEllipse(ctx, hx - 1.6, hy - 5.6, 0.65, 0.55, '#fde047');
+        fillEllipse(ctx, hx + 1.6, hy - 5.6, 0.65, 0.55, '#fde047');
+      }
+      return;
+    }
+
+    if (hatVal === 'magestic_goat') {
+      // Ragnarok Majestic Goat Helmet (Bronze Viking Horned Helm)
+      fillRoundRect(ctx, hx - 5.4, hy - 5.6, 10.8, 2.6, 1.1, '#b45309', ol, 0.85);
+      [-1, 1].forEach((side) => {
+        ctx.save();
+        ctx.translate(hx + side * 4.8, hy - 4.8);
+        ctx.scale(side, 1);
+        ctx.beginPath();
+        ctx.moveTo(0, -0.5);
+        ctx.quadraticCurveTo(4.6, -4.0, 5.2, 1.5);
+        ctx.quadraticCurveTo(3.0, -1.0, 0, 1.2);
+        ctx.closePath();
+        ctx.fillStyle = '#fde68a';
+        ctx.fill();
+        ctx.strokeStyle = ol;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+        ctx.restore();
+      });
+      return;
+    }
+
+    if (hatVal === 'solar_god_helm') {
+      // Ragnarok Helm of Sun / Solar God Crown (Radiant Sunburst Golden Crest)
+      for (let i = -3; i <= 3; i++) {
+        ctx.save();
+        ctx.translate(hx + i * 1.4, hy - 5.2);
+        ctx.rotate(i * 0.22);
+        ctx.beginPath();
+        ctx.moveTo(-0.8, 0.5);
+        ctx.lineTo(0, -4.5 + Math.abs(i) * 0.6);
+        ctx.lineTo(0.8, 0.5);
+        ctx.closePath();
+        ctx.fillStyle = i % 2 === 0 ? '#fde047' : '#f59e0b';
+        ctx.fill();
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+        ctx.restore();
+      }
+      fillRoundRect(ctx, hx - 5.4, hy - 5.4, 10.8, 2.1, 0.9, '#fbbf24', ol, 0.85);
+      fillEllipse(ctx, hx, hy - 4.4, 1.4, 1.2, '#38bdf8', '#ffffff', 0.6);
+      return;
+    }
+
+    if (hatVal === 'poopoo_hat') {
+      // Ragnarok Legendary Classic Poo Poo Hat!
+      const pCol = '#b45309';
+      fillEllipse(ctx, hx, hy - 4.4, 5.6, 1.7, pCol, ol, 0.8);
+      fillEllipse(ctx, hx, hy - 6.0, 4.1, 1.5, '#d97706', ol, 0.8);
+      fillEllipse(ctx, hx, hy - 7.5, 2.4, 1.3, '#f59e0b', ol, 0.8);
+      fillEllipse(ctx, hx + 0.3, hy - 8.7, 1.0, 1.0, '#fbbf24', ol, 0.7);
+      return;
+    }
+
     const hatColor = hatVal;
     const hatHi = shadeHex(hatColor, 0.32);
     const hatSh = shadeHex(hatColor, -0.28);
@@ -1012,18 +1252,21 @@ window.Sprites = (function () {
 
   // ==================== RAGNAROK MIDDLE HEADGEAR (EARS, HEAD WINGS, BACK WINGS, BLUSH, AURA, EYEWEAR) ====================
   function drawHeadMiddleBack25D(ctx, cx, cy, midVal, dir, tick, ol) {
-    if (!['angel_wing_back', 'devil_wing_back', 'fairy_wing', 'golden_wing'].includes(midVal)) return;
+    if (!['angel_wing_back', 'devil_wing_back', 'fairy_wing', 'golden_wing', 'peco_wing', 'fallen_angel_wing', 'ice_crystal_wing', 'dragon_bone_wing', 'giant_bow_back'].includes(midVal)) return;
     const flap = Math.sin((tick || 0) / 9) * 1.1;
 
-    if (midVal === 'angel_wing_back' || midVal === 'golden_wing') {
+    if (midVal === 'angel_wing_back' || midVal === 'golden_wing' || midVal === 'fallen_angel_wing' || midVal === 'peco_wing') {
       const isGold = midVal === 'golden_wing';
-      const cTop = isGold ? '#fef08a' : '#ffffff';
-      const cMid = isGold ? '#f59e0b' : '#e0f2fe';
-      const cBot = isGold ? '#b45309' : '#bae6fd';
+      const isDark = midVal === 'fallen_angel_wing';
+      const isPeco = midVal === 'peco_wing';
+      const cTop = isGold ? '#fef08a' : isDark ? '#312e81' : isPeco ? '#fed7aa' : '#ffffff';
+      const cMid = isGold ? '#f59e0b' : isDark ? '#1e1b4b' : isPeco ? '#fb923c' : '#e0f2fe';
+      const cBot = isGold ? '#b45309' : isDark ? '#0f172a' : isPeco ? '#ea580c' : '#bae6fd';
+      const wScale = isPeco ? 0.76 : 1.0;
       [-1, 1].forEach((side) => {
         ctx.save();
         ctx.translate(cx + side * 3.2, cy);
-        ctx.scale(side, 1);
+        ctx.scale(side * wScale, wScale);
         const wGrad = ctx.createLinearGradient(0, -6, 9, 4);
         wGrad.addColorStop(0, cTop);
         wGrad.addColorStop(0.6, cMid);
@@ -1037,7 +1280,7 @@ window.Sprites = (function () {
         ctx.closePath();
         ctx.fillStyle = wGrad;
         ctx.fill();
-        ctx.strokeStyle = isGold ? '#78350f' : '#0284c7';
+        ctx.strokeStyle = isGold ? '#78350f' : isDark ? '#7c3aed' : isPeco ? '#9a3412' : '#0284c7';
         ctx.lineWidth = 0.85;
         ctx.stroke();
         ctx.restore();
@@ -1045,16 +1288,16 @@ window.Sprites = (function () {
       return;
     }
 
-    if (midVal === 'devil_wing_back') {
-      // Dark Crimson Demon Bat Wings
+    if (midVal === 'devil_wing_back' || midVal === 'dragon_bone_wing') {
+      const isBone = midVal === 'dragon_bone_wing';
       [-1, 1].forEach((side) => {
         ctx.save();
         ctx.translate(cx + side * 3.2, cy);
         ctx.scale(side, 1);
         const dGrad = ctx.createLinearGradient(0, -6, 9, 4);
-        dGrad.addColorStop(0, '#991b1b');
-        dGrad.addColorStop(0.5, '#450a0a');
-        dGrad.addColorStop(1, '#0f172a');
+        dGrad.addColorStop(0, isBone ? '#f8fafc' : '#991b1b');
+        dGrad.addColorStop(0.5, isBone ? '#cbd5e1' : '#450a0a');
+        dGrad.addColorStop(1, isBone ? '#475569' : '#0f172a');
         ctx.beginPath();
         ctx.moveTo(0, -1.2);
         ctx.lineTo(5.2, -6.5 - flap);
@@ -1074,16 +1317,30 @@ window.Sprites = (function () {
       return;
     }
 
-    if (midVal === 'fairy_wing') {
-      // Glowing Iridescent Butterfly / Archeling Fairy Wings
+    if (midVal === 'fairy_wing' || midVal === 'ice_crystal_wing') {
+      const isIce = midVal === 'ice_crystal_wing';
       [-1, 1].forEach((side) => {
         ctx.save();
         ctx.translate(cx + side * 3.0, cy);
         ctx.scale(side, 1);
-        fillEllipse(ctx, 4.6, -2.8 - flap * 0.6, 4.4, 2.6, 'rgba(103, 232, 249, 0.72)', '#0284c7', 0.8);
-        fillEllipse(ctx, 3.8, 2.0 + flap * 0.3, 3.2, 2.0, 'rgba(244, 114, 182, 0.72)', '#db2777', 0.8);
+        fillEllipse(ctx, 4.6, -2.8 - flap * 0.6, 4.4, 2.6, isIce ? 'rgba(186, 230, 253, 0.85)' : 'rgba(103, 232, 249, 0.72)', '#0284c7', 0.8);
+        fillEllipse(ctx, 3.8, 2.0 + flap * 0.3, 3.2, 2.0, isIce ? 'rgba(56, 189, 248, 0.82)' : 'rgba(244, 114, 182, 0.72)', isIce ? '#0369a1' : '#db2777', 0.8);
         ctx.restore();
       });
+      return;
+    }
+
+    if (midVal === 'giant_bow_back') {
+      // Ragnarok Giant Ribbon / Bell Bow on Back
+      [-1, 1].forEach((side) => {
+        ctx.save();
+        ctx.translate(cx + side * 3.0, cy);
+        ctx.scale(side, 1);
+        fillEllipse(ctx, 3.4, -0.8, 3.6, 2.4, '#f43f5e', ol, 0.85);
+        fillRoundRect(ctx, 1.2, 0.8, 2.2, 4.5, 0.8, '#e11d48', ol, 0.75);
+        ctx.restore();
+      });
+      fillEllipse(ctx, cx, cy - 0.6, 1.8, 1.8, '#fbbf24', ol, 0.75);
     }
   }
 
@@ -1235,6 +1492,30 @@ window.Sprites = (function () {
         fillRoundRect(ctx, hx + (sign < 0 ? -4.8 : 0.2), hy - 1.0, 4.6, 2.2, 0.8, '#1e293b', ol, 0.75);
         fillRoundRect(ctx, hx + (sign < 0 ? -4.2 : 0.8), hy - 0.5, 3.2, 1.1, 0.4, '#ef4444');
       }
+      return;
+    }
+
+    if (midVal === 'sunglasses_ro') {
+      // Ragnarok Classic Dark Fashion Sunglasses
+      if (dir === 'down') {
+        fillRoundRect(ctx, hx - 4.6, hy - 1.1, 4.1, 2.4, 0.7, '#0f172a', '#fbbf24', 0.7);
+        fillRoundRect(ctx, hx + 0.5, hy - 1.1, 4.1, 2.4, 0.7, '#0f172a', '#fbbf24', 0.7);
+      } else {
+        const sign = dir === 'left' ? -1 : 1;
+        fillRoundRect(ctx, hx + (sign < 0 ? -4.4 : 0.4), hy - 1.1, 4.0, 2.4, 0.7, '#0f172a', '#fbbf24', 0.7);
+      }
+      return;
+    }
+
+    if (midVal === 'opera_masque') {
+      // Ragnarok Phantom of the Opera White Half-Mask
+      if (dir === 'down') {
+        fillRoundRect(ctx, hx - 4.6, hy - 1.5, 4.8, 3.4, 1.2, '#f8fafc', ol, 0.75);
+        fillEllipse(ctx, hx - 2.6, hy + 0.1, 1.0, 0.7, '#0f172a');
+      } else {
+        const sign = dir === 'left' ? -1 : 1;
+        fillRoundRect(ctx, hx + (sign < 0 ? -4.6 : 0.2), hy - 1.5, 4.4, 3.4, 1.1, '#f8fafc', ol, 0.75);
+      }
     }
   }
 
@@ -1354,6 +1635,61 @@ window.Sprites = (function () {
       const x0 = dir === 'down' ? hx - 4.4 : hx + (sign < 0 ? -4.8 : -0.6);
       fillRoundRect(ctx, x0, hy + 1.2, w, 3.7, 1.2, '#dc2626', ol, 0.8);
       fillEllipse(ctx, mx, hy + 2.8, 1.0, 0.5, '#fef08a');
+      return;
+    }
+
+    if (lowVal === 'Scroll_mouth') {
+      // Ragnarok Ninja Magic Scroll in Mouth
+      const dirSign = dir === 'left' ? -1 : 1;
+      fillRoundRect(ctx, mx - 3.4, my - 0.4, 6.8, 1.8, 0.8, '#fef08a', ol, 0.75);
+      fillEllipse(ctx, mx - 3.4, my + 0.5, 0.9, 1.1, '#ef4444', ol, 0.65);
+      fillEllipse(ctx, mx + 3.4, my + 0.5, 0.9, 1.1, '#ef4444', ol, 0.65);
+      return;
+    }
+
+    if (lowVal === 'donut_mouth') {
+      // Ragnarok Sweet Pink Frosted Donut in Mouth
+      fillEllipse(ctx, mx, my + 0.6, 2.3, 2.1, '#f472b6', '#be185d', 0.75);
+      fillEllipse(ctx, mx, my + 0.6, 0.75, 0.65, '#fde0c4', '#be185d', 0.55);
+      return;
+    }
+
+    if (lowVal === 'pirate_dagger') {
+      // Ragnarok Pirate Dagger Clenched in Mouth
+      const dirSign = dir === 'left' ? -1 : 1;
+      fillRoundRect(ctx, mx - dirSign * 3.8, my - 0.4, 2.4, 1.4, 0.4, '#78350f', ol, 0.7);
+      fillRoundRect(ctx, mx - dirSign * 1.4, my - 1.1, 0.8, 2.8, 0.3, '#fbbf24', ol, 0.6);
+      ctx.beginPath();
+      ctx.moveTo(mx - dirSign * 0.6, my - 0.5);
+      ctx.lineTo(mx + dirSign * 4.8, my + 0.2);
+      ctx.lineTo(mx - dirSign * 0.6, my + 0.9);
+      ctx.closePath();
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fill();
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 0.65;
+      ctx.stroke();
+      return;
+    }
+
+    if (lowVal === 'lollipop_mouth') {
+      // Ragnarok Candy Lollipop in Mouth
+      const dirSign = dir === 'left' ? -1 : 1;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.lineTo(mx + dirSign * 4.2, my + 0.5);
+      ctx.stroke();
+      fillEllipse(ctx, mx + dirSign * 4.4, my + 0.4, 1.8, 1.8, '#ec4899', '#ffffff', 0.75);
+      return;
+    }
+
+    if (lowVal === 'santa_beard') {
+      // Ragnarok Fluffy White Lutie Santa Beard
+      const w = dir === 'down' ? 9.2 : 5.6;
+      const x0 = dir === 'down' ? hx - 4.6 : hx + (sign < 0 ? -5.0 : -0.6);
+      fillRoundRect(ctx, x0, hy + 1.4, w, 4.6, 2.2, '#ffffff', '#cbd5e1', 0.8);
     }
   }
 
@@ -1381,7 +1717,7 @@ window.Sprites = (function () {
     ctx.fillStyle = ground;
     ctx.fillRect(0, 34, 48, 14);
 
-    drawCharacter(ctx, 8, 20, style, 'down', 0, 2, 0);
+    drawCharacter(ctx, 3, 10, style, 'down', 0, 2.1, 0);
     portraitCache[key] = c;
     return c;
   }
