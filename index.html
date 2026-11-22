@@ -173,9 +173,19 @@
       </div>
     </div>
 
-    <!-- Bottom Center Hotbar (Stardew Valley Style) -->
+    <!-- Bottom Center Hotbar & Quick Emote / Sit Shortcut Bar -->
     <div id="hud-hotbar" class="hud-layer hidden">
-      <div id="selected-item-banner" class="selected-item-banner">เลือกไอเท็มด้วยปุ่ม 1-9 • กด F เพื่อใช้</div>
+      <div id="emote-shortcut-bar" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;background:rgba(36,18,8,0.86);border:2px solid #b87338;border-radius:999px;padding:3px 10px;font-size:11.5px;color:#fef3c7;box-shadow:0 3px 10px rgba(0,0,0,0.35);">
+        <button id="btn-toggle-sit" class="emote-pill" style="padding:1px 7px;font-size:11px;font-weight:700;" title="กดปุ่ม X เพื่อนั่งพักผ่อน/ลุกขึ้น">🪑 นั่ง [X]</button>
+        <button class="emote-pill quick-hotkey-emote" data-emote="👋 สวัสดี!" title="กดปุ่ม Z">Z 👋</button>
+        <button class="emote-pill quick-hotkey-emote" data-emote="❤️ รักเลย!" title="กดปุ่ม V">V ❤️</button>
+        <button class="emote-pill quick-hotkey-emote" data-emote="😂 ฮ่า ๆ ๆ!" title="กดปุ่ม G">G 😂</button>
+        <button class="emote-pill quick-hotkey-emote" data-emote="👍 สุดยอด!" title="กดปุ่ม H">H 👍</button>
+        <button class="emote-pill quick-hotkey-emote" data-emote="🎉 ผ่านแล้ว!" title="กดปุ่ม J">J 🎉</button>
+        <button class="emote-pill quick-hotkey-emote" data-emote="❓ งงจังช่วยด้วย!" title="กดปุ่ม K">K ❓</button>
+        <button class="emote-pill quick-hotkey-emote" data-emote="☕ พักดื่มกาแฟ" title="กดปุ่ม N">N ☕</button>
+      </div>
+      <div id="selected-item-banner" class="selected-item-banner">เลือกไอเท็มด้วยปุ่ม 1-9 • กด F เพื่อใช้ • X นั่งพัก • Z/V/G/H/J/K/N อิโมจิ</div>
       <div class="hotbar-frame wood-panel" id="hotbar-slots"></div>
     </div>
 
