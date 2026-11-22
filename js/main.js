@@ -3214,7 +3214,7 @@
     } else {
       const slotIdx = HOTBAR_KEYS.indexOf(e.key);
       if (e.code === 'KeyL') {
-        openMultiplayerModal('connect');
+        openMultiplayerModal(isTeacherAdmin ? 'connect' : 'leaderboard');
       } else if (e.code === 'KeyT') {
         openMultiplayerModal('teacher');
       } else if (e.code === 'KeyC') {
@@ -3260,14 +3260,19 @@
     ctx.fillText(shortTxt, cx, by + 13);
   }
 
-  let currentMpTab = 'connect';
+  let currentMpTab = 'leaderboard';
 
-  function openMultiplayerModal(tab = 'connect') {
+  function openMultiplayerModal(tab = 'leaderboard') {
+    const safeTab = (tab === 'connect' && !isTeacherAdmin) ? 'leaderboard' : tab;
     openModal('modal-multiplayer');
-    switchMpTab(tab);
+    syncTeacherAdminUI();
+    switchMpTab(safeTab);
   }
 
   function switchMpTab(tab) {
+    if (tab === 'connect' && !isTeacherAdmin) {
+      tab = 'leaderboard';
+    }
     currentMpTab = tab;
     document.querySelectorAll('.mp-tab-btn').forEach((b) => {
       b.classList.toggle('active', b.dataset.mptab === tab);
@@ -3328,9 +3333,16 @@
     const panel = document.getElementById('teacher-admin-panel');
     const hudBtn = document.getElementById('btn-teacher-admin');
     const godBtn = document.getElementById('btn-admin-godspeed');
+    const connectTabBtn = document.getElementById('mp-tab-btn-connect');
+    const connectPane = document.getElementById('mp-pane-connect');
     if (lockBox) lockBox.classList.toggle('hidden', isTeacherAdmin);
     if (panel) panel.classList.toggle('hidden', !isTeacherAdmin);
     if (hudBtn) hudBtn.classList.toggle('teacher-active', isTeacherAdmin);
+    // Online Room Connection tab is exclusively visible in Teacher Admin Mode
+    if (connectTabBtn) connectTabBtn.classList.toggle('hidden', !isTeacherAdmin);
+    if (!isTeacherAdmin && connectPane && !connectPane.classList.contains('hidden')) {
+      switchMpTab('leaderboard');
+    }
     if (godBtn) {
       godBtn.textContent = teacherGodSpeed
         ? '⚡ วิ่งไวพิเศษ 2x & พลังงานไม่จำกัด: เปิดอยู่ 🟢'
@@ -3803,9 +3815,11 @@
 
   function getSavedTeacherPin() {
     try {
-      return localStorage.getItem(TEACHER_PIN_KEY) || '1234';
+      const saved = localStorage.getItem(TEACHER_PIN_KEY);
+      if (saved && saved !== '1234') return saved;
+      return 'Watzero1234';
     } catch (e) {
-      return '1234';
+      return 'Watzero1234';
     }
   }
 
@@ -3814,7 +3828,7 @@
     const entered = (pinInput && pinInput.value.trim()) || '';
     if (entered !== getSavedTeacherPin()) {
       SoundFX.error();
-      showToast('❌ รหัส PIN คุณครูไม่ถูกต้อง (รหัสเริ่มต้นคือ 1234)');
+      showToast('❌ รหัสผ่านแอดมินคุณครูไม่ถูกต้อง');
       return;
     }
     isTeacherAdmin = true;
@@ -3823,7 +3837,7 @@
     SoundFX.questComplete();
     syncTeacherAdminUI();
     renderTeacherDashboard();
-    showToast('👑 เปิดโหมดแอดมินสำหรับคุณครูแล้ว! (ตัวละครของคุณมีมงกุฎทอง 👑 บนหัว)', true);
+    showToast('👑 เปิดโหมดแอดมินสำหรับคุณครูแล้ว! (ปลดล็อกแท็บเชื่อมต่อห้องออนไลน์ & มงกุฎครู 👑)', true);
   };
 
   document.getElementById('btn-unlock-teacher-admin').onclick = unlockAdminNow;
@@ -3844,10 +3858,10 @@
   };
 
   document.getElementById('btn-change-teacher-pin').onclick = () => {
-    const nextPin = prompt('กำหนดรหัส PIN ใหม่สำหรับโหมดแอดมินครู (เช่น 1234):', getSavedTeacherPin());
+    const nextPin = prompt('กำหนดรหัสผ่านใหม่สำหรับโหมดแอดมินครู:', '');
     if (nextPin && nextPin.trim()) {
       try { localStorage.setItem(TEACHER_PIN_KEY, nextPin.trim()); } catch (e) {}
-      showToast(`🔑 เปลี่ยนรหัส PIN คุณครูเป็น "${nextPin.trim()}" เรียบร้อยแล้ว!`, true);
+      showToast('🔑 บันทึกรหัสผ่านแอดมินคุณครูใหม่เรียบร้อยแล้ว!', true);
     }
   };
 
@@ -4105,7 +4119,7 @@
   };
 
   // HUD Quick Menu Buttons
-  document.getElementById('btn-multiplayer').onclick = () => openMultiplayerModal('connect');
+  document.getElementById('btn-multiplayer').onclick = () => openMultiplayerModal(isTeacherAdmin ? 'connect' : 'leaderboard');
   document.getElementById('btn-teacher-admin').onclick = () => openMultiplayerModal('teacher');
   syncTeacherAdminUI();
   document.getElementById('btn-codex').onclick = () => openCodexModal();
