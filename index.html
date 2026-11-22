@@ -582,6 +582,39 @@
         </div>
       </div>
 
+      <!-- Retro Arcade Mini-Game Cabinet Modal (Packet Catcher & Cyber Snake) -->
+      <div id="modal-arcade" class="modal-window wood-panel medium-modal hidden">
+        <div class="modal-header">
+          <div>
+            <h2>🕹️ ตู้เกมอาร์เคด Server Valley Arcade</h2>
+            <p class="modal-sub">เล่นมินิเกมสุดมันส์เพื่อสะสมคะแนนและรับเหรียญรางวัล Bytes 🪙 ฟรี!</p>
+          </div>
+          <button class="close-btn" data-close="modal-arcade">✕</button>
+        </div>
+        <div class="modal-body-scroll" style="display:flex;flex-direction:column;align-items:center;gap:10px;background:#0f172a;color:#e2e8f0;padding:14px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;">
+            <button id="btn-arcade-mode-catcher" class="wood-btn small-btn primary-btn">📡 เกมที่ 1: Packet Catcher (รับแพ็กเก็ต หลบไวรัส)</button>
+            <button id="btn-arcade-mode-snake" class="wood-btn small-btn win-btn">🐍 เกมที่ 2: Cyber Snake (งูเก็บเหรียญ Bytes)</button>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;width:100%;max-width:440px;background:#1e293b;border:2px solid #38bdf8;border-radius:6px;padding:6px 12px;font-weight:700;font-size:13.5px;">
+            <span id="arcade-score-label">🎯 คะแนน: 0</span>
+            <span id="arcade-best-label" style="color:#fde047;">🏆 สถิติสูงสุด: 0</span>
+            <span id="arcade-status-label" style="color:#4ade80;">⚡ พร้อมเล่น!</span>
+          </div>
+          <canvas id="arcade-canvas" width="440" height="300" style="background:#020617;border:4px solid #ec4899;border-radius:8px;box-shadow:0 0 18px rgba(236,72,153,0.4);max-width:100%;touch-action:none;"></canvas>
+          <div id="arcade-controls-hint" style="font-size:12.5px;color:#94a3b8;text-align:center;">
+            ใช้ปุ่ม <strong>A / D</strong> หรือ <strong>ลูกศร ◀ ▶</strong> (หรือแตะ/ลากบนจอ) เพื่อควบคุม • จบเกมรับเหรียญ Bytes ตามคะแนน!
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
+            <button id="btn-arcade-start" class="wood-btn primary-btn">▶ เริ่มเล่น / เล่นใหม่</button>
+            <button id="btn-arcade-left" class="wood-btn small-btn">◀ ซ้าย</button>
+            <button id="btn-arcade-up" class="wood-btn small-btn">▲ ขึ้น</button>
+            <button id="btn-arcade-down" class="wood-btn small-btn">▼ ลง</button>
+            <button id="btn-arcade-right" class="wood-btn small-btn">ขวา ▶</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Certificate / Graduation & Editable Institution Info Modal -->
       <div id="modal-cert" class="modal-window wood-panel medium-modal hidden">
         <div class="modal-header no-print">
