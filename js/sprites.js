@@ -87,8 +87,8 @@ window.Sprites = (function () {
     return res;
   }
 
-  // ==================== 2.5D VOLUMETRIC CHARACTER MODEL (+15% BALANCED WORLD PROPORTION, HIGH-DETAIL SHADING & RAGNAROK 3-SLOT FASHION) ====================
-  function drawCharacter(ctx, x, y, style, dir = 'down', frame = 0, scale = 2, tick = 0) {
+  // ==================== 3D VOLUMETRIC CHARACTER MODEL (SITTING POSE, 3D RIM LIGHTING, HIGH-DETAIL SHADING & RAGNAROK 3-SLOT FASHION) ====================
+  function drawCharacter(ctx, x, y, style, dir = 'down', frame = 0, scale = 2, tick = 0, isSitting = false) {
     ctx.save();
     // Balanced in-world character model size (+15% from 1.5 -> 1.725, anchored cleanly at tile center x+16, feet y+33)
     const isWorldSprite = scale === 2;
@@ -125,29 +125,32 @@ window.Sprites = (function () {
     const hairStyle = style.hairStyle || 'short';
     const faceStyle = style.faceStyle || (style.glasses ? 'glasses' : 'smile');
 
-    const isWalking = frame === 1 || frame === 3;
-    const bob = isWalking ? -1.1 : Math.sin(tick / 18) * 0.45;
+    const isWalking = !isSitting && (frame === 1 || frame === 3);
+    const sitDrop = isSitting ? 3.8 : 0;
+    const bob = isSitting ? (Math.sin(tick / 22) * 0.28 + sitDrop) : (isWalking ? -1.1 : Math.sin(tick / 18) * 0.45);
     const tiltX = dir === 'left' ? -0.6 : dir === 'right' ? 0.6 : 0;
     const by = bob;
-    const stride = frame === 1 ? 1 : frame === 3 ? -1 : 0;
+    const stride = isSitting ? 0 : (frame === 1 ? 1 : frame === 3 ? -1 : 0);
     const legL = stride * 1.4;
     const legR = -stride * 1.4;
-    const armL = -stride * 1.3;
-    const armR = stride * 1.3;
+    const armL = isSitting ? 0.8 : -stride * 1.3;
+    const armR = isSitting ? 0.8 : stride * 1.3;
     const blink = (tick % 200) > 192;
 
-    // 1. 2.5D Angled Perspective Ground Shadow + Contact Ambient Occlusion
+    // 1. 3D Volumetric Perspective Ground Shadow + Contact Ambient Occlusion
     ctx.save();
     ctx.translate(10.5, 26.2);
     ctx.rotate(0.12);
-    const shGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 7.5);
-    shGrad.addColorStop(0, 'rgba(12, 20, 10, 0.48)');
-    shGrad.addColorStop(0.65, 'rgba(15, 26, 14, 0.25)');
+    const shGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, isSitting ? 9.2 : 8.2);
+    shGrad.addColorStop(0, 'rgba(10, 18, 12, 0.56)');
+    shGrad.addColorStop(0.65, 'rgba(15, 26, 14, 0.28)');
     shGrad.addColorStop(1, 'rgba(15, 26, 14, 0)');
-    fillEllipse(ctx, 0, 0, 7.2 + Math.abs(stride) * 0.6, 2.7, shGrad);
+    fillEllipse(ctx, 0, 0, (isSitting ? 8.6 : 7.5) + Math.abs(stride) * 0.6, isSitting ? 3.4 : 2.9, shGrad);
     ctx.restore();
-    fillEllipse(ctx, 7.5, 26.2 + legL * 0.4, 2.3, 0.9, 'rgba(10,16,8,0.34)');
-    fillEllipse(ctx, 12.5, 26.2 + legR * 0.4, 2.3, 0.9, 'rgba(10,16,8,0.34)');
+    if (!isSitting) {
+      fillEllipse(ctx, 7.5, 26.2 + legL * 0.4, 2.3, 0.9, 'rgba(10,16,8,0.34)');
+      fillEllipse(ctx, 12.5, 26.2 + legR * 0.4, 2.3, 0.9, 'rgba(10,16,8,0.34)');
+    }
 
     // 2. Back Hair Layers (Long / Twintails / Wolfcut), Ragnarok Back Wings & 2.5D Backpack Depth
     if (style.headMiddle) {
@@ -216,7 +219,28 @@ window.Sprites = (function () {
       ctx.stroke();
     };
 
-    if (dir === 'left') {
+    if (isSitting) {
+      // Cozy 3D Sitting Pose (Legs tucked/extended forward on ground or bench!)
+      const sy = 22.8;
+      if (dir === 'left' || dir === 'right') {
+        const sgn = dir === 'left' ? -1 : 1;
+        // Extended thigh forward + shoe at front
+        const thighX = sgn < 0 ? 3.2 : 9.2;
+        fillRoundRect(ctx, thighX, sy, 7.6, 3.6, 1.6, pants, ol, 0.85);
+        fillRoundRect(ctx, thighX + 0.8, sy + 0.5, 5.8, 0.9, 0.4, pantsHi);
+        const shoeX = sgn < 0 ? 1.8 : 14.2;
+        fillRoundRect(ctx, shoeX, sy + 0.8, 4.4, 3.2, 1.3, shoes, ol, 0.85);
+        fillRoundRect(ctx, shoeX + 0.5, sy + 2.8, 3.4, 1.1, 0.5, '#f1f5f9', ol, 0.5);
+      } else {
+        // Seated front/back with both legs bent neatly forward and 3D sneaker soles visible
+        fillRoundRect(ctx, 4.4, sy - 0.2, 4.8, 3.8, 1.7, pants, ol, 0.85);
+        fillRoundRect(ctx, 10.8, sy - 0.2, 4.8, 3.8, 1.7, pants, ol, 0.85);
+        fillRoundRect(ctx, 4.0, sy + 1.4, 4.8, 3.0, 1.3, shoes, ol, 0.85);
+        fillRoundRect(ctx, 11.2, sy + 1.4, 4.8, 3.0, 1.3, shoes, ol, 0.85);
+        fillEllipse(ctx, 6.4, sy + 3.2, 1.8, 1.0, '#f1f5f9', ol, 0.6);
+        fillEllipse(ctx, 13.6, sy + 3.2, 1.8, 1.0, '#f1f5f9', ol, 0.6);
+      }
+    } else if (dir === 'left') {
       drawLegAndShoe(8.6, legR * 0.8, true);
       drawLegAndShoe(7.2, legL, false);
     } else if (dir === 'right') {

@@ -603,7 +603,7 @@ window.Multiplayer = (function () {
       const p = hooks.getLocalPlayer();
       if (!p) return;
       const now = Date.now();
-      const sig = `${p.x},${p.y},${p.dir},${p.frame},${p.completedUnits.length},${p.bytes},${p.zone},${p.insideBuildingId || ''},${p.name},${p.hairStyle},${p.hair},${p.faceStyle},${p.skin},${p.shirt},${p.shirtStyle},${p.pants},${p.shoes},${p.hat},${p.headMiddle || ''},${p.headLower || ''},${p.isTeacher ? 1 : 0}`;
+      const sig = `${p.x},${p.y},${p.dir},${p.frame},${p.sitting ? 1 : 0},${p.completedUnits.length},${p.bytes},${p.zone},${p.insideBuildingId || ''},${p.name},${p.hairStyle},${p.hair},${p.faceStyle},${p.skin},${p.shirt},${p.shirtStyle},${p.pants},${p.shoes},${p.hat},${p.headMiddle || ''},${p.headLower || ''},${p.isTeacher ? 1 : 0}`;
       if (!force && sig === fbLastSentSig && now - fbLastSentAt < 5000) return;
       fbLastSentSig = sig;
       fbLastSentAt = now;
@@ -617,6 +617,7 @@ window.Multiplayer = (function () {
         y: p.y,
         dir: p.dir,
         frame: p.frame,
+        sitting: !!p.sitting,
         skin: p.skin,
         hair: p.hair,
         hairStyle: p.hairStyle,

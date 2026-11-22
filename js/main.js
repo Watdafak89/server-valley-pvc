@@ -154,7 +154,8 @@
         y: 10 * TILE,
         dir: 'down',
         frame: 0,
-        animTimer: 0
+        animTimer: 0,
+        sitting: false
       },
       selectedSlot: 0,
       inventory: [
@@ -1741,6 +1742,10 @@
       if ((allowWasd && keys['KeyD']) || (allowArrows && keys['ArrowRight']) || touchDir.right) dx += 1;
 
       if (dx !== 0 || dy !== 0) {
+        if (state.player.sitting) {
+          state.player.sitting = false;
+          syncSitButtonUI();
+        }
         const len = Math.hypot(dx, dy);
         dx /= len;
         dy /= len;
@@ -1804,6 +1809,11 @@
           stepSoundCooldown = sprinting ? 0.2 : state.speedBoostTimer > 0 ? 0.24 : 0.32;
         }
       } else {
+        // Sitting slowly regenerates Energy (+1 every ~2.5s) like Ragnarok Online!
+        if (state.player.sitting && state.energy < state.maxEnergy && tick % 150 === 0) {
+          state.energy = Math.min(state.maxEnergy, state.energy + 1);
+          spawnParticles(state.player.x + 16, state.player.y + 8, '#86efac', 4);
+        }
         state.player.frame = 0;
       }
 
@@ -2056,7 +2066,7 @@
                   headLower: peer.headLower || ''
                 };
                 if (peer.isTeacher) drawTeacherAdminAura(ctx, peer.rx + 16, peer.ry + 28, tick);
-                Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
+                Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29, !!peer.sitting);
                 if (peer.isTeacher) drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 14, tick);
                 const label = (peer.isTeacher ? '👑 ครู ' : '') + (peer.name || 'เพื่อนร่วมห้อง');
                 ctx.font = 'bold 10px Kanit, sans-serif';
@@ -2082,7 +2092,7 @@
           y: state.player.y + 32,
           draw: () => {
             if (isTeacherAdmin) drawTeacherAdminAura(ctx, state.player.x + 16, state.player.y + 28, tick);
-            Sprites.drawCharacter(ctx, state.player.x, state.player.y - 6, GD.PLAYER_STYLE, state.player.dir, state.player.frame, 2, tick);
+            Sprites.drawCharacter(ctx, state.player.x, state.player.y - 6, GD.PLAYER_STYLE, state.player.dir, state.player.frame, 2, tick, !!state.player.sitting);
             if (isTeacherAdmin) {
               drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 14, tick);
               const tLabel = '👑 ครู ' + ((state.profile && state.profile.studentName) || 'ครูผู้สอน');
@@ -2385,7 +2395,7 @@
             if (peer.isTeacher) {
               drawTeacherAdminAura(ctx, peer.rx + 16, peer.ry + 28, tick);
             }
-            Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
+            Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29, !!peer.sitting);
             if (peer.isTeacher) {
               drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 14, tick);
             }
@@ -2424,7 +2434,8 @@
           state.player.dir,
           state.player.frame,
           2,
-          tick
+          tick,
+          !!state.player.sitting
         );
         if (isTeacherAdmin) {
           drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 14, tick);
@@ -2567,16 +2578,16 @@
 
     ctx.restore();
 
-    // 7. 2.5D HD-2D Atmospheric Post-Processing: Diagonal Sunbeam God-Rays, Horizon Depth & Tilt-Shift Vignette
+    // 7. 3D Volumetric Atmospheric Post-Processing: Isometric Horizon Depth, Warm Sunlight Rays & Soft 3D Bloom Vignette
     ctx.save();
     if (nightFactor < 0.45) {
-      // Diagonal warm sunlight shafts streaming from upper-left across the 2.5D diorama
-      const sunAlpha = (1 - nightFactor * 2) * 0.075;
+      // Diagonal 3D sunlight shafts streaming from upper-left across the 3D village
+      const sunAlpha = (1 - nightFactor * 2) * 0.085;
       ctx.fillStyle = `rgba(255, 247, 194, ${sunAlpha})`;
       const rayShift = Math.sin(tick / 90) * 18;
       for (let r = 0; r < 3; r++) {
         const rx = vw * (0.08 + r * 0.30) + rayShift;
-        const rw = vw * 0.11;
+        const rw = vw * 0.12;
         ctx.beginPath();
         ctx.moveTo(rx, 0);
         ctx.lineTo(rx + rw, 0);
@@ -2585,6 +2596,12 @@
         ctx.closePath();
         ctx.fill();
       }
+      // Upper-left 3D directional key-light radial bloom
+      const sunGlow = ctx.createRadialGradient(vw * 0.12, vh * 0.06, 10, vw * 0.12, vh * 0.06, Math.max(vw, vh) * 0.45);
+      sunGlow.addColorStop(0, `rgba(255, 251, 220, ${(1 - nightFactor * 2) * 0.14})`);
+      sunGlow.addColorStop(1, 'rgba(255, 251, 220, 0)');
+      ctx.fillStyle = sunGlow;
+      ctx.fillRect(0, 0, vw, vh);
     }
 
     // Golden Hour / Evening / Night Atmospheric Tint
@@ -3226,6 +3243,10 @@
 
     if (e.code === 'KeyF') {
       useSelectedItem();
+    } else if (e.code === 'KeyX') {
+      togglePlayerSit();
+    } else if (QUICK_EMOTE_KEYS[e.code]) {
+      triggerQuickEmote(QUICK_EMOTE_KEYS[e.code]);
     } else if (e.code === 'KeyB') {
       openCodexModal();
     } else if (e.code === 'KeyQ') {
@@ -3669,6 +3690,7 @@
         y: Math.round(state.player.y),
         dir: state.player.dir,
         frame: state.player.frame,
+        sitting: !!state.player.sitting,
         skin: GD.PLAYER_STYLE.skin,
         hair: GD.PLAYER_STYLE.hair,
         hairStyle: GD.PLAYER_STYLE.hairStyle,
@@ -4536,6 +4558,54 @@
       }
     });
   }
+
+  // ==================== SITTING POSE (X) & KEYBOARD EMOTE HOTKEYS (Z / V / G / H / J / K / N) ====================
+  const QUICK_EMOTE_KEYS = {
+    KeyZ: '👋 สวัสดี!',
+    KeyV: '❤️ รักเลย!',
+    KeyG: '😂 ฮ่า ๆ ๆ!',
+    KeyH: '👍 สุดยอด!',
+    KeyJ: '🎉 ผ่านแล้ว!',
+    KeyK: '❓ งงจังช่วยด้วย!',
+    KeyN: '☕ พักดื่มกาแฟ'
+  };
+
+  function syncSitButtonUI() {
+    const sitBtn = document.getElementById('btn-toggle-sit');
+    if (sitBtn) {
+      sitBtn.textContent = state.player.sitting ? '🧍 ลุกขึ้น [X]' : '🪑 นั่ง [X]';
+      sitBtn.style.background = state.player.sitting ? '#86efac' : '';
+    }
+  }
+
+  function togglePlayerSit() {
+    if (!state.started || activeModalId || dialogQueue) return;
+    state.player.sitting = !state.player.sitting;
+    state.player.frame = 0;
+    SoundFX.click();
+    syncSitButtonUI();
+    if (state.player.sitting) {
+      spawnParticles(state.player.x + 16, state.player.y + 24, '#fde68a', 10);
+      showToast('🪑 นั่งพักผ่อน (ฟื้นฟูพลังงานช้า ๆ อัตโนมัติ • กด X หรือเดินเพื่อลุกขึ้น)', true);
+    }
+  }
+
+  function triggerQuickEmote(emoteText) {
+    if (!emoteText) return;
+    myBubble = emoteText;
+    myBubbleUntil = Date.now() + 4500;
+    SoundFX.talk();
+    spawnParticles(state.player.x + 16, state.player.y - 6, '#fde047', 10);
+    if (window.Multiplayer && Multiplayer.getStatus().connected) {
+      Multiplayer.sendChat(emoteText);
+    }
+  }
+
+  const btnToggleSit = document.getElementById('btn-toggle-sit');
+  if (btnToggleSit) btnToggleSit.onclick = togglePlayerSit;
+  document.querySelectorAll('.quick-hotkey-emote').forEach((b) => {
+    b.onclick = () => triggerQuickEmote(b.dataset.emote);
+  });
 
   // Boot Renderer
   window.addEventListener('resize', resizeCanvas);
