@@ -480,15 +480,18 @@
         }
       }
 
-      // Trees O(1) lookup & Central Plaza Fountain & Admin Farmyard Well
+      // Trees O(1) lookup & Central Plaza Fountain & Admin Farmyard Well & Grand Fast-Travel Warp Board
       if (treeLookup.has(tx + ',' + ty)) return true;
       if ((tx === 41 || tx === 42) && ty === 24) return true;
       if ((tx === 12 || tx === 13) && ty === 14) return true;
+      if ((tx === 13 || tx === 14) && ty === 10) return true;
 
-      // Outdoor Town & Shopkeeper NPCs hitbox
+      // Outdoor Town & Shopkeeper NPCs hitbox (supports both stationary and walking NPCs!)
       if (GD.TOWN_NPCS) {
         for (const tn of GD.TOWN_NPCS) {
-          if (Math.abs(cx - (tn.tx * TILE + 16)) < 13 && Math.abs(cy - (tn.ty * TILE + 24)) < 10) {
+          const nwx = typeof tn.wx === 'number' ? tn.wx : tn.tx * TILE;
+          const nwy = typeof tn.wy === 'number' ? tn.wy : tn.ty * TILE;
+          if (Math.abs(cx - (nwx + 16)) < 13 && Math.abs(cy - (nwy + 24)) < 10) {
             return true;
           }
         }
@@ -555,13 +558,15 @@
       });
     }
 
-    // Outdoor Town & Shopkeeper NPCs (IT Store Shopkeeper + Village Residents)
+    // Outdoor Town & Shopkeeper NPCs (IT Store Shopkeeper + Walking Village Residents)
     if (GD.TOWN_NPCS) {
       GD.TOWN_NPCS.forEach((tn) => {
+        const nwx = typeof tn.wx === 'number' ? tn.wx : tn.tx * TILE;
+        const nwy = typeof tn.wy === 'number' ? tn.wy : tn.ty * TILE;
         const lbl = tn.action === 'shop'
           ? `🛒 ทักทาย & ซื้อของกับ ${tn.name}`
           : `👋 ทักทาย ${tn.name}`;
-        consider('town_npc', tn, tn.tx * TILE + 16, tn.ty * TILE + 16, lbl);
+        consider('town_npc', tn, nwx + 16, nwy + 16, lbl);
       });
     }
 
@@ -572,7 +577,8 @@
     });
     GD.SPECIAL_PROPS.forEach((sp) => {
       if (sp.kind !== 'bed' && sp.kind !== 'shop') {
-        consider('special', sp, sp.tx * TILE + 16, sp.ty * TILE + 16, sp.label);
+        const spanW = (sp.tw || 1) * TILE;
+        consider('special', sp, sp.tx * TILE + spanW / 2, sp.ty * TILE + 16, sp.label);
       }
     });
 
@@ -698,7 +704,9 @@
             label: qText,
             action: () => {
               const ans = (tn.replyAnswers && tn.replyAnswers[idx]) || 'ยินดีที่ได้พูดคุยกันนะ!';
-              spawnParticles(tn.tx * TILE + 16, tn.ty * TILE + 8, '#fde047', 16);
+              const nwx = typeof tn.wx === 'number' ? tn.wx : tn.tx * TILE;
+              const nwy = typeof tn.wy === 'number' ? tn.wy : tn.ty * TILE;
+              spawnParticles(nwx + 16, nwy + 8, '#fde047', 16);
               openDialog({
                 speaker: tn.name,
                 role: tn.role,
@@ -1862,6 +1870,58 @@
       if (f.x < f.minX || f.x > f.maxX) f.vx *= -1;
     });
 
+    // Walking / Patrol AI for Outdoor Town NPCs (pause politely when player is nearby or talking)
+    if (GD.TOWN_NPCS && !state.insideBuildingId) {
+      GD.TOWN_NPCS.forEach((tn) => {
+        if (typeof tn.wx !== 'number') {
+          tn.wx = tn.tx * TILE;
+          tn.wy = tn.ty * TILE;
+          tn.wpIdx = 0;
+          tn.pauseTimer = 0.8 + Math.random() * 1.5;
+          tn.frame = 0;
+          tn.animTimer = 0;
+        }
+        if (!Array.isArray(tn.patrol) || tn.patrol.length < 2) {
+          tn.frame = 0;
+          return;
+        }
+        const dPlayer = Math.hypot((state.player.x + 16) - (tn.wx + 16), (state.player.y + 16) - (tn.wy + 16));
+        if (dialogQueue || dPlayer < 54) {
+          tn.frame = 0;
+          return;
+        }
+        if (tn.pauseTimer > 0) {
+          tn.pauseTimer -= dt;
+          tn.frame = 0;
+          return;
+        }
+        const wp = tn.patrol[tn.wpIdx % tn.patrol.length];
+        const targetX = wp.tx * TILE;
+        const targetY = wp.ty * TILE;
+        const dx = targetX - tn.wx;
+        const dy = targetY - tn.wy;
+        const dist = Math.hypot(dx, dy);
+        const spd = (tn.speed || 38) * dt;
+        if (dist <= spd + 1) {
+          tn.wx = targetX;
+          tn.wy = targetY;
+          tn.wpIdx = (tn.wpIdx + 1) % tn.patrol.length;
+          tn.pauseTimer = 1.4 + Math.random() * 1.8;
+          tn.frame = 0;
+        } else {
+          tn.wx += (dx / dist) * spd;
+          tn.wy += (dy / dist) * spd;
+          if (Math.abs(dx) > Math.abs(dy)) tn.dir = dx < 0 ? 'left' : 'right';
+          else tn.dir = dy < 0 ? 'up' : 'down';
+          tn.animTimer = (tn.animTimer || 0) + dt;
+          if (tn.animTimer > 0.17) {
+            tn.animTimer = 0;
+            tn.frame = ((tn.frame || 0) + 1) % 4;
+          }
+        }
+      });
+    }
+
     // Smoothly interpolate connected classmates
     if (window.Multiplayer) {
       Multiplayer.stepInterpolation();
@@ -2119,27 +2179,22 @@
       ctx.fillRect(Math.floor(vx), Math.floor(vy), 2, 10);
     }
 
-    // 2. Outdoor Central Plaza Landmarks (Fast-Travel Warp Totem)
+    // 2. Y-Sorted Renderables with Viewport Culling for fast 4x Map rendering
+    const renderList = [];
+
+    // Grand 2.5D Fast-Travel Warp Board (2-tile wide roofed map monument moved to Zone 1 Village Entrance)
     GD.SPECIAL_PROPS.forEach((sp) => {
-      if (sp.kind === 'bed' || sp.kind === 'shop') return; // Bed is inside Cottage & IT Shop is now a full 7x4 General Store building!
+      if (sp.kind !== 'warp') return;
+      if (sp.tx < startX - 3 || sp.tx > endX + 3 || sp.ty < startY - 3 || sp.ty > endY + 3) return;
       const wx = sp.tx * TILE;
       const wy = sp.ty * TILE;
-      if (sp.kind === 'warp') {
-        ctx.fillStyle = '#1b3548';
-        ctx.fillRect(wx, wy - 2, 32, 32);
-        ctx.fillStyle = '#5ce1e6';
-        ctx.fillRect(wx + 3, wy + 1, 26, 26);
-        ctx.fillStyle = '#e0fbff';
-        ctx.fillRect(wx + 5, wy + 3, 22, 4);
-        ctx.fillStyle = '#102a43';
-        ctx.font = 'bold 12px Kanit, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('🗺️', wx + 16, wy + 19);
-      }
+      renderList.push({
+        y: wy + 28,
+        draw: () => {
+          Sprites.drawWarpBoard(ctx, wx, wy, tick);
+        }
+      });
     });
-
-    // 3. Y-Sorted Renderables with Viewport Culling for fast 4x Map rendering
-    const renderList = [];
 
     // Town Scenery & Store Buildings (Grand 7x4 IT General Store, Café & Bakery, Tech Bookstore, Glass Greenhouse, Red Barn & Silo, Hardware Forge & Villager Cottages!)
     if (GD.SCENERY_BUILDINGS) {
@@ -2240,25 +2295,28 @@
       });
     });
 
-    // Outdoor Town & Shopkeeper NPCs standing in front of IT Store, Café, Bookstore, Plaza, Farm, Greenhouse, Forge, Barn & Clinic
+    // Outdoor Town & Shopkeeper NPCs standing or walking across the Village Map
     if (GD.TOWN_NPCS) {
       GD.TOWN_NPCS.forEach((tn, idx) => {
-        if (tn.tx < startX - 3 || tn.tx > endX + 3 || tn.ty < startY - 3 || tn.ty > endY + 3) return;
-        const wx = tn.tx * TILE;
-        const wy = tn.ty * TILE;
+        const wx = typeof tn.wx === 'number' ? tn.wx : tn.tx * TILE;
+        const wy = typeof tn.wy === 'number' ? tn.wy : tn.ty * TILE;
+        const curTx = wx / TILE;
+        const curTy = wy / TILE;
+        if (curTx < startX - 3 || curTx > endX + 3 || curTy < startY - 3 || curTy > endY + 3) return;
         // Turn gently toward player when player is nearby
         let lookDir = tn.dir || 'down';
         const dPlayer = Math.hypot((state.player.x + 16) - (wx + 16), (state.player.y + 16) - (wy + 16));
-        if (dPlayer < 96) {
+        if (dPlayer < 72) {
           const dx = (state.player.x + 16) - (wx + 16);
           const dy = (state.player.y + 16) - (wy + 16);
           if (Math.abs(dx) > Math.abs(dy)) lookDir = dx < 0 ? 'left' : 'right';
           else lookDir = dy < 0 ? 'up' : 'down';
         }
+        const walkFrame = dPlayer < 54 ? 0 : (tn.frame || 0);
         renderList.push({
           y: wy + 31,
           draw: () => {
-            Sprites.drawCharacter(ctx, wx, wy - 6, tn.style, lookDir, 0, 2, tick + idx * 19);
+            Sprites.drawCharacter(ctx, wx, wy - 6, tn.style, lookDir, walkFrame, 2, tick + idx * 19);
             // Floating role/greeting marker above NPC
             if (tn.marker) {
               drawFloatingMarker(ctx, wx + 16, wy - 20, tn.marker, tn.markerColor || '#ffd54f');

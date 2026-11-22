@@ -302,11 +302,11 @@ window.GAME_DATA = (function () {
     { id: 'crate_coffee_se', tx: 58, ty: 35, itemId: 'admin_coffee', qty: 2, label: 'กล่องกาแฟแอดมิน (โซน 4)' }
   ];
 
-  // Special Interactive Landmarks (Rest Bed, Grand IT General Store, Fast-Travel Totem)
+  // Special Interactive Landmarks (Rest Bed, Grand IT General Store, Grand Fast-Travel Warp Board)
   const SPECIAL_PROPS = [
     { id: 'rest_spot', kind: 'bed', tx: 10, ty: 7, label: 'พักผ่อนที่บ้านพัก (ฟื้นพลังงานเต็ม 100%)' },
     { id: 'it_shop', kind: 'shop', tx: 35, ty: 23, label: '🏪 เข้าซื้อของที่ห้างสรรพสินค้าไอที (Server Valley IT General Store)' },
-    { id: 'warp_sign', kind: 'warp', tx: 45, ty: 24, label: 'ป้ายวาร์ปด่วนไปทั้ง 4 โซน (เปิดแผนที่ M)' }
+    { id: 'warp_sign', kind: 'warp', tx: 13, ty: 10, tw: 2, label: '🗺️ ป้ายสถานีวาร์ปด่วนใหญ่ (เดินทางไปทั้ง 4 โซน / เปิดแผนที่ M)' }
   ];
 
   // 9 Village Scenery & Town Store Buildings (Grand IT General Store, Café & Bakery, Tech Bookstore, Glass Greenhouse, Barn & Silo, Hardware Forge & Villager Cottages!)
@@ -582,8 +582,15 @@ window.GAME_DATA = (function () {
       id: 'farmer_kla',
       name: 'ลุงกล้า เกษตรกรสมาร์ตฟาร์ม',
       role: '🌾 ชาวไร่ประจำแปลงเกษตรโซน 1',
-      tx: 9, ty: 14,
-      dir: 'down',
+      tx: 6, ty: 14,
+      patrol: [
+        { tx: 6, ty: 14 },
+        { tx: 11, ty: 14 },
+        { tx: 11, ty: 11 },
+        { tx: 6, ty: 11 }
+      ],
+      speed: 36,
+      dir: 'right',
       action: 'chat',
       marker: '🌾',
       markerColor: '#a3e635',
@@ -608,8 +615,15 @@ window.GAME_DATA = (function () {
       id: 'plaza_guide_nana',
       name: 'นานะ ไกด์ประจำลานน้ำพุ',
       role: '⛲ ทูตต้อนรับจัตุรัสกลาง Server Valley',
-      tx: 40, ty: 26,
-      dir: 'down',
+      tx: 38, ty: 26,
+      patrol: [
+        { tx: 38, ty: 26 },
+        { tx: 45, ty: 26 },
+        { tx: 45, ty: 28 },
+        { tx: 38, ty: 28 }
+      ],
+      speed: 42,
+      dir: 'right',
       action: 'map',
       marker: '💬',
       markerColor: '#f472b6',
@@ -627,15 +641,20 @@ window.GAME_DATA = (function () {
       ],
       replyAnswers: [
         'ใช่ไหมล่ะ! ยิ่งเพื่อน ๆ ช่วยกันทำแล็บกู้คืนเซิร์ฟเวอร์ให้ครบ ไฟสถานะของอาคารต่าง ๆ ก็จะยิ่งสว่างไสวทั่วหมู่บ้านเลย ✨',
-        'ง่ายนิดเดียว! กดปุ่ม M เพื่อเปิดแผนที่หมู่บ้าน แล้วคลิกที่อาคารของสัปดาห์ที่ต้องการเพื่อวาร์ปไปหน้าประตูได้ทันทีเลยจ้า!'
+        'ง่ายนิดเดียว! เดินไปที่ "ป้ายสถานีวาร์ปด่วนใหญ่" แถวลานหมู่บ้านโซน 1 หรือกดปุ่ม M บนคีย์บอร์ด แล้วคลิกอาคารที่ต้องการวาร์ปได้ทันทีเลยจ้า!'
       ]
     },
     {
       id: 'student_ton',
-      name: 'ต้น เด็กปวช.สาย नेटवर्क',
+      name: 'ต้น เด็กปวช.สายเครือข่าย',
       role: '🧑‍💻 นักศึกษาฝึกงานไอที (โซน 1)',
-      tx: 21, ty: 11,
-      dir: 'down',
+      tx: 17, ty: 11,
+      patrol: [
+        { tx: 17, ty: 11 },
+        { tx: 28, ty: 11 }
+      ],
+      speed: 46,
+      dir: 'right',
       action: 'chat',
       marker: '💬',
       markerColor: '#60a5fa',
@@ -660,8 +679,13 @@ window.GAME_DATA = (function () {
       id: 'iot_botanist_mali',
       name: 'พี่มะลิ นักวิจัยเรือนกระจก IoT',
       role: '🌿 ผู้ดูแล Smart Glass Greenhouse (โซน 3)',
-      tx: 32, ty: 35,
-      dir: 'down',
+      tx: 29, ty: 35,
+      patrol: [
+        { tx: 29, ty: 35 },
+        { tx: 35, ty: 35 }
+      ],
+      speed: 38,
+      dir: 'right',
       action: 'chat',
       marker: '🌿',
       markerColor: '#34d399',
@@ -712,8 +736,13 @@ window.GAME_DATA = (function () {
       id: 'rancher_boon',
       name: 'ลุงบุญ นายสถานีโรงนา & ไซโล',
       role: '🐂 ผู้ดูแลโรงนาแดงและหอไซโล (โซน 2)',
-      tx: 75, ty: 18,
-      dir: 'down',
+      tx: 72, ty: 18,
+      patrol: [
+        { tx: 72, ty: 18 },
+        { tx: 78, ty: 18 }
+      ],
+      speed: 35,
+      dir: 'right',
       action: 'chat',
       marker: '🌾',
       markerColor: '#f87171',
@@ -738,8 +767,13 @@ window.GAME_DATA = (function () {
       id: 'nurse_patch',
       name: 'พยาบาลแพทช์ (คลินิกกู้ภัยระบบ)',
       role: '🏥 ผู้เชี่ยวชาญ Security Patch & Recovery (โซน 4)',
-      tx: 59, ty: 44,
-      dir: 'down',
+      tx: 56, ty: 44,
+      patrol: [
+        { tx: 56, ty: 44 },
+        { tx: 61, ty: 44 }
+      ],
+      speed: 38,
+      dir: 'right',
       action: 'codex',
       marker: '🏥',
       markerColor: '#2dd4bf',

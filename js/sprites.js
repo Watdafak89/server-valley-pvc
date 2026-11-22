@@ -1854,6 +1854,77 @@ window.Sprites = (function () {
     fillRoundRect(ctx, sx + 9, sy + 0.5, 10, 4, 2, '#facc15', ol, 0.9);
   }
 
+  // ==================== 2.5D GRAND FAST-TRAVEL WARP BOARD (2-TILE WIDE ROOFED MAP BILLBOARD) ====================
+  function drawWarpBoard(ctx, wx, wy, tick) {
+    const ol = '#261306';
+    // Wide ground shadow for 2-tile (64px) monument
+    fillEllipse(ctx, wx + 32, wy + 27, 36, 9.5, 'rgba(12, 22, 10, 0.38)');
+
+    // 3D Stone Plinth Foundation
+    const stGrad = ctx.createLinearGradient(wx + 2, wy + 16, wx + 62, wy + 29);
+    stGrad.addColorStop(0, '#d6d3d1');
+    stGrad.addColorStop(0.5, '#a8a29e');
+    stGrad.addColorStop(1, '#57534e');
+    fillRoundRect(ctx, wx + 2, wy + 17, 60, 12, 4, stGrad, ol, 1.5);
+    fillRoundRect(ctx, wx + 6, wy + 14, 52, 5, 2, '#e7e5e4', ol, 1.1);
+
+    // Heavy Timber Twin Support Pillars
+    fillRoundRect(ctx, wx + 7, wy - 38, 7, 54, 2, '#7c3f14', ol, 1.4);
+    fillRoundRect(ctx, wx + 50, wy - 38, 7, 54, 2, '#5c2d0c', ol, 1.4);
+
+    // Large 2.5D Wooden Map Frame (between pillars)
+    const frameGrad = ctx.createLinearGradient(wx + 4, wy - 34, wx + 60, wy + 12);
+    frameGrad.addColorStop(0, '#b4692c');
+    frameGrad.addColorStop(0.5, '#8c4b1a');
+    frameGrad.addColorStop(1, '#5c2d0c');
+    fillRoundRect(ctx, wx + 4, wy - 33, 56, 44, 4, frameGrad, ol, 1.6);
+
+    // Illuminated Map & Holographic Zone Screen inside Board
+    const mapGrad = ctx.createLinearGradient(wx + 8, wy - 29, wx + 56, wy + 7);
+    mapGrad.addColorStop(0, '#0f172a');
+    mapGrad.addColorStop(0.5, '#1e3a5f');
+    mapGrad.addColorStop(1, '#0c4a6e');
+    fillRoundRect(ctx, wx + 8, wy - 29, 48, 36, 3, mapGrad, '#fbbf24', 1.4);
+
+    // 4 Mini Colored Zone Quadrants on the Billboard Map
+    fillRoundRect(ctx, wx + 11, wy - 26, 19, 12, 1.5, 'rgba(74, 222, 128, 0.35)', '#4ade80', 0.9);
+    fillRoundRect(ctx, wx + 34, wy - 26, 19, 12, 1.5, 'rgba(56, 189, 248, 0.35)', '#38bdf8', 0.9);
+    fillRoundRect(ctx, wx + 11, wy - 11, 19, 11, 1.5, 'rgba(244, 114, 182, 0.35)', '#f472b6', 0.9);
+    fillRoundRect(ctx, wx + 34, wy - 11, 19, 11, 1.5, 'rgba(251, 191, 36, 0.35)', '#fbbf24', 0.9);
+
+    // Crossroad lines & glowing compass crystal in center of map board
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.fillRect(wx + 31, wy - 27, 2, 28);
+    ctx.fillRect(wx + 10, wy - 13, 44, 2);
+
+    const pulse = 0.65 + 0.35 * Math.sin(tick / 10);
+    fillEllipse(ctx, wx + 32, wy - 12, 5.5 * pulse, 5.5 * pulse, 'rgba(92, 225, 230, 0.42)');
+    fillEllipse(ctx, wx + 32, wy - 12, 2.8, 2.8, '#5ce1e6', '#ffffff', 0.9);
+
+    // 2.5D Pitched Shingle Canopy Roof over the Grand Warp Board
+    const rGrad = ctx.createLinearGradient(wx - 4, wy - 54, wx - 4, wy - 32);
+    rGrad.addColorStop(0, '#0284c7');
+    rGrad.addColorStop(0.55, '#0369a1');
+    rGrad.addColorStop(1, '#1e3a8a');
+    fillRoundRect(ctx, wx - 4, wy - 52, 72, 20, 4, rGrad, ol, 1.6);
+
+    // Gold Banner Signplate on the Roof Front
+    fillRoundRect(ctx, wx + 7, wy - 48, 50, 13, 3, '#fef3c7', '#78350f', 1.3);
+    ctx.fillStyle = '#78350f';
+    ctx.font = 'bold 8.5px Kanit, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🗺️ สถานีวาร์ปด่วน [M]', wx + 32, wy - 39);
+
+    // Hanging glowing travel lanterns on left & right eaves
+    const swing = Math.sin(tick / 14) * 1.2;
+    [-1, 1].forEach((side) => {
+      const lx = side < 0 ? wx + 1 : wx + 63;
+      const ly = wy - 31;
+      fillEllipse(ctx, lx + swing, ly + 3, 6, 6, `rgba(253, 224, 71, ${0.28 * pulse})`);
+      fillRoundRect(ctx, lx - 2.5 + swing, ly, 5, 7, 1.5, '#fde047', ol, 1.0);
+    });
+  }
+
   // ==================== 2.5D VILLAGE STREET LAMP ====================
   function drawLamp(ctx, wx, wy, nightFactor) {
     const ol = '#18181b';
@@ -2082,6 +2153,7 @@ window.Sprites = (function () {
     drawServerRack,
     drawCrate,
     drawFountain,
+    drawWarpBoard,
     drawBench,
     drawLamp
   };
