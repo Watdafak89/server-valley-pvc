@@ -2022,7 +2022,7 @@
               ctx.font = 'bold 10px Kanit, sans-serif';
               ctx.textAlign = 'center';
               ctx.fillText(npc.name, layout.npcPos.x + 16, layout.npcPos.y + 39);
-              drawFloatingMarker(ctx, layout.npcPos.x + 16, layout.npcPos.y - 12, '!', '#ffcf33');
+              drawFloatingMarker(ctx, layout.npcPos.x + 16, layout.npcPos.y - 15, '!', '#ffcf33');
             }
           });
         }
@@ -2052,7 +2052,7 @@
                 };
                 if (peer.isTeacher) drawTeacherAdminAura(ctx, peer.rx + 16, peer.ry + 28, tick);
                 Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
-                if (peer.isTeacher) drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 10, tick);
+                if (peer.isTeacher) drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 14, tick);
                 const label = (peer.isTeacher ? '👑 ครู ' : '') + (peer.name || 'เพื่อนร่วมห้อง');
                 ctx.font = 'bold 10px Kanit, sans-serif';
                 const nw = Math.max(58, ctx.measureText(label).width + 14);
@@ -2065,7 +2065,7 @@
                 ctx.textAlign = 'center';
                 ctx.fillText(label, peer.rx + 16, peer.ry + 40);
                 if (peer.bubble && peer.bubbleUntil > nowMs) {
-                  drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 16, peer.bubble);
+                  drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 20, peer.bubble);
                 }
               }
             });
@@ -2079,7 +2079,7 @@
             if (isTeacherAdmin) drawTeacherAdminAura(ctx, state.player.x + 16, state.player.y + 28, tick);
             Sprites.drawCharacter(ctx, state.player.x, state.player.y - 6, GD.PLAYER_STYLE, state.player.dir, state.player.frame, 2, tick);
             if (isTeacherAdmin) {
-              drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 10, tick);
+              drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 14, tick);
               const tLabel = '👑 ครู ' + ((state.profile && state.profile.studentName) || 'ครูผู้สอน');
               ctx.font = 'bold 10px Kanit, sans-serif';
               const nw = Math.max(64, ctx.measureText(tLabel).width + 14);
@@ -2093,7 +2093,7 @@
               ctx.fillText(tLabel, state.player.x + 16, state.player.y + 40);
             }
             if (myBubble && myBubbleUntil > Date.now()) {
-              drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 18 : 10), myBubble);
+              drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 22 : 13), myBubble);
             }
           }
         });
@@ -2325,7 +2325,7 @@
             Sprites.drawCharacter(ctx, wx, wy - 6, tn.style, lookDir, walkFrame, 2, tick + idx * 19);
             // Floating role/greeting marker above NPC
             if (tn.marker) {
-              drawFloatingMarker(ctx, wx + 16, wy - 14, tn.marker, tn.markerColor || '#ffd54f');
+              drawFloatingMarker(ctx, wx + 16, wy - 17, tn.marker, tn.markerColor || '#ffd54f');
             }
             // Nameplate under NPC feet
             ctx.font = 'bold 9.5px Kanit, sans-serif';
@@ -2372,7 +2372,7 @@
             }
             Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
             if (peer.isTeacher) {
-              drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 10, tick);
+              drawTeacherCrownBadge(ctx, peer.rx + 16, peer.ry - 14, tick);
             }
             const label = (peer.isTeacher ? '👑 ครู ' : '') + (peer.name || 'เพื่อนร่วมห้อง');
             ctx.font = 'bold 10px Kanit, sans-serif';
@@ -2387,7 +2387,7 @@
             ctx.fillText(label, peer.rx + 16, peer.ry + 40);
 
             if (peer.bubble && peer.bubbleUntil > nowMs) {
-              drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 16, peer.bubble);
+              drawSpeechBubble(ctx, peer.rx + 16, peer.ry - 20, peer.bubble);
             }
           }
         });
@@ -2412,7 +2412,7 @@
           tick
         );
         if (isTeacherAdmin) {
-          drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 10, tick);
+          drawTeacherCrownBadge(ctx, state.player.x + 16, state.player.y - 14, tick);
           const tLabel = '👑 ครู ' + ((state.profile && state.profile.studentName) || 'ครูผู้สอน');
           ctx.font = 'bold 10px Kanit, sans-serif';
           const nw = Math.max(64, ctx.measureText(tLabel).width + 14);
@@ -2426,7 +2426,7 @@
           ctx.fillText(tLabel, state.player.x + 16, state.player.y + 40);
         }
         if (myBubble && myBubbleUntil > Date.now()) {
-          drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 18 : 10), myBubble);
+          drawSpeechBubble(ctx, state.player.x + 16, state.player.y - (isTeacherAdmin ? 22 : 13), myBubble);
         }
       }
     });

@@ -87,14 +87,14 @@ window.Sprites = (function () {
     return res;
   }
 
-  // ==================== 2.5D VOLUMETRIC CHARACTER MODEL (-25% WORLD PROPORTION, HIGH-DETAIL SHADING & RAGNAROK 3-SLOT FASHION) ====================
+  // ==================== 2.5D VOLUMETRIC CHARACTER MODEL (+15% BALANCED WORLD PROPORTION, HIGH-DETAIL SHADING & RAGNAROK 3-SLOT FASHION) ====================
   function drawCharacter(ctx, x, y, style, dir = 'down', frame = 0, scale = 2, tick = 0) {
     ctx.save();
-    // Reduce in-world character model size by 25% (scale 2 -> effective 1.5, anchored cleanly at tile center x+16, feet y+33)
+    // Balanced in-world character model size (+15% from 1.5 -> 1.725, anchored cleanly at tile center x+16, feet y+33)
     const isWorldSprite = scale === 2;
-    const effScale = isWorldSprite ? 1.5 : scale;
-    const offsetX = isWorldSprite ? 1.0 : 0;
-    const offsetY = isWorldSprite ? -6.5 : 0;
+    const effScale = isWorldSprite ? 1.725 : scale;
+    const offsetX = isWorldSprite ? -1.25 : 0;
+    const offsetY = isWorldSprite ? -12.35 : 0;
     ctx.translate(x + offsetX, y + offsetY);
     ctx.scale(effScale, effScale);
 
