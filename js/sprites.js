@@ -146,7 +146,10 @@ window.Sprites = (function () {
     fillEllipse(ctx, 7.5, 26.2 + legL * 0.4, 2.3, 0.9, 'rgba(10,16,8,0.34)');
     fillEllipse(ctx, 12.5, 26.2 + legR * 0.4, 2.3, 0.9, 'rgba(10,16,8,0.34)');
 
-    // 2. Back Hair Layers (Long / Twintails / Wolfcut) & 2.5D Backpack Depth
+    // 2. Back Hair Layers (Long / Twintails / Wolfcut), Ragnarok Back Wings & 2.5D Backpack Depth
+    if (style.headMiddle) {
+      drawHeadMiddleBack25D(ctx, 10.0 + tiltX * 0.4, 15.0 + by, style.headMiddle, dir, tick, ol);
+    }
     if ((hairStyle === 'long' || hairStyle === 'wolfcut') && dir !== 'up') {
       const bhGrad = ctx.createLinearGradient(3, 8 + by, 17, 19 + by);
       bhGrad.addColorStop(0, hair);
@@ -162,7 +165,8 @@ window.Sprites = (function () {
       fillEllipse(ctx, 17.0, 12.8 + by, 2.2, 5.2, ttGrad, ol, 0.85);
     }
 
-    if (style.backpack && (dir === 'left' || dir === 'right' || dir === 'down')) {
+    const hasBackWing = ['angel_wing_back', 'devil_wing_back', 'fairy_wing', 'golden_wing'].includes(style.headMiddle);
+    if (style.backpack && !hasBackWing && (dir === 'left' || dir === 'right' || dir === 'down')) {
       const bpX = dir === 'left' ? 12.8 : dir === 'right' ? 3.0 : 4.2;
       const bpW = dir === 'down' ? 11.6 : 4.2;
       const bpGrad = ctx.createLinearGradient(bpX, 13 + by, bpX + bpW, 20 + by);
@@ -350,9 +354,16 @@ window.Sprites = (function () {
     headGrad.addColorStop(1, skinDeep);
     fillRoundRect(ctx, hx - 5.8, hy - 5.3, 11.6, 11.0, 4.8, headGrad, ol, 1.0);
 
-    // 9. Hair & Face
+    // 9. Hair, Face & Ragnarok 3-Slot Headgear (Upper / Middle / Lower)
     if (dir === 'up') {
       drawHairBack25D(ctx, hx, hy, by, hair, hairHi, hairSh, hairDeep, hairStyle, style, ol);
+      if (style.headMiddle) {
+        drawHeadMiddleFront25D(ctx, hx, hy, style.headMiddle, 'up', tick, ol);
+        drawHeadMiddleBack25D(ctx, 10.0, 15.0 + by, style.headMiddle, 'up', tick, ol);
+      }
+      if (style.headLower) {
+        drawHeadLower25D(ctx, hx, hy, style.headLower, 'up', tick, ol);
+      }
     } else {
       fillEllipse(ctx, hx, hy - 2.1, 4.9, 1.6, 'rgba(45, 22, 12, 0.22)');
       if (dir === 'down') {
@@ -360,7 +371,13 @@ window.Sprites = (function () {
       } else {
         drawSideFace25D(ctx, hx, hy, dir, faceStyle, blink, style, ol, skinHi, skinSh);
       }
+      if (style.headMiddle) {
+        drawHeadMiddleFront25D(ctx, hx, hy, style.headMiddle, dir, tick, ol);
+      }
       drawHairFront25D(ctx, hx, hy, by, dir, hair, hairHi, hairSh, hairDeep, hairStyle, style, ol);
+      if (style.headLower) {
+        drawHeadLower25D(ctx, hx, hy, style.headLower, dir, tick, ol);
+      }
     }
 
     ctx.restore();
@@ -785,7 +802,190 @@ window.Sprites = (function () {
       return;
     }
 
-    // Colored 2.5D Baseball Cap
+    // Colored 2.5D Baseball Cap or Ragnarok Upper Headgear!
+    if (hatVal === 'poring_hat') {
+      // Ragnarok Online Iconic Pink Poring Hat sitting on head!
+      const pGrad = ctx.createRadialGradient(hx - 1.5, hy - 6.8, 0.6, hx, hy - 5.5, 6.2);
+      pGrad.addColorStop(0, '#ffe4e6');
+      pGrad.addColorStop(0.55, '#fb7185');
+      pGrad.addColorStop(1, '#e11d48');
+      fillEllipse(ctx, hx, hy - 5.4, 5.6, 3.8, pGrad, ol, 0.9);
+      // Poring top water droplet antenna
+      fillEllipse(ctx, hx, hy - 9.4, 1.2, 1.5, '#fda4af', ol, 0.7);
+      // Cute Poring eyes & smile on hat front
+      if (dir !== 'up') {
+        fillEllipse(ctx, hx - 1.8, hy - 5.2, 0.6, 0.65, '#1e293b');
+        fillEllipse(ctx, hx + 1.8, hy - 5.2, 0.6, 0.65, '#1e293b');
+        fillEllipse(ctx, hx - 2.0, hy - 5.4, 0.25, 0.25, '#ffffff');
+        fillEllipse(ctx, hx + 1.6, hy - 5.4, 0.25, 0.25, '#ffffff');
+        ctx.strokeStyle = '#881337';
+        ctx.lineWidth = 0.65;
+        ctx.beginPath();
+        ctx.arc(hx, hy - 4.7, 0.9, 0.1 * Math.PI, 0.9 * Math.PI);
+        ctx.stroke();
+      }
+      return;
+    }
+
+    if (hatVal === 'valkyrie_helm') {
+      // Ragnarok Valkyrie Winged Helm (Golden Circlet + Large White Feathered Side Wings)
+      const vGrad = ctx.createLinearGradient(hx - 5, hy - 6, hx + 5, hy - 3);
+      vGrad.addColorStop(0, '#fef08a');
+      vGrad.addColorStop(0.5, '#f59e0b');
+      vGrad.addColorStop(1, '#b45309');
+      fillRoundRect(ctx, hx - 5.2, hy - 5.5, 10.4, 2.2, 1.0, vGrad, ol, 0.85);
+      fillEllipse(ctx, hx, hy - 4.8, 1.3, 1.6, '#38bdf8', ol, 0.65);
+      // Left & Right Valkyrie Feathered Wings sweeping up
+      [-1, 1].forEach((side) => {
+        ctx.save();
+        ctx.translate(hx + side * 5.8, hy - 5.2);
+        ctx.scale(side, 1);
+        ctx.beginPath();
+        ctx.moveTo(0, 1.5);
+        ctx.lineTo(3.8, -4.8);
+        ctx.lineTo(2.4, -0.8);
+        ctx.lineTo(4.4, -2.5);
+        ctx.lineTo(1.8, 1.2);
+        ctx.closePath();
+        ctx.fillStyle = '#f8fafc';
+        ctx.fill();
+        ctx.strokeStyle = ol;
+        ctx.lineWidth = 0.75;
+        ctx.stroke();
+        ctx.restore();
+      });
+      return;
+    }
+
+    if (hatVal === 'bapho_horns') {
+      // Ragnarok Majestic Baphomet Horns (Dark Curved Goat Horns)
+      [-1, 1].forEach((side) => {
+        ctx.save();
+        ctx.translate(hx + side * 3.8, hy - 4.8);
+        ctx.scale(side, 1);
+        ctx.beginPath();
+        ctx.moveTo(-0.5, 1.0);
+        ctx.quadraticCurveTo(3.2, -5.8, 5.6, -2.2);
+        ctx.quadraticCurveTo(3.4, -1.8, 1.2, 1.5);
+        ctx.closePath();
+        const hGrad = ctx.createLinearGradient(0, -5, 5, 1);
+        hGrad.addColorStop(0, '#475569');
+        hGrad.addColorStop(0.6, '#1e293b');
+        hGrad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = hGrad;
+        ctx.fill();
+        ctx.strokeStyle = ol;
+        ctx.lineWidth = 0.85;
+        ctx.stroke();
+        ctx.restore();
+      });
+      fillEllipse(ctx, hx, hy - 4.6, 1.4, 1.1, '#ef4444', ol, 0.6);
+      return;
+    }
+
+    if (hatVal === 'angel_halo') {
+      // Ragnarok Floating Golden Angel Wing Band / Halo
+      fillEllipse(ctx, hx, hy - 8.4, 5.2, 1.6, 'rgba(253, 224, 71, 0.35)');
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.ellipse(hx, hy - 8.4, 4.4, 1.2, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      ctx.ellipse(hx, hy - 8.5, 4.2, 1.0, 0, Math.PI * 1.1, Math.PI * 1.9);
+      ctx.stroke();
+      return;
+    }
+
+    if (hatVal === 'wizard_hat') {
+      // Ragnarok High Wizard Pointed Hat with Gold Star Band
+      fillEllipse(ctx, hx, hy - 4.0, 8.8, 2.2, '#312e81', ol, 0.9);
+      ctx.beginPath();
+      ctx.moveTo(hx - 5.2, hy - 4.2);
+      ctx.quadraticCurveTo(hx - 1.0, hy - 11.5, hx + 3.2, hy - 12.2);
+      ctx.quadraticCurveTo(hx + 2.5, hy - 7.5, hx + 5.2, hy - 4.2);
+      ctx.closePath();
+      const wGrad = ctx.createLinearGradient(hx - 5, hy - 12, hx + 5, hy - 4);
+      wGrad.addColorStop(0, '#6366f1');
+      wGrad.addColorStop(0.6, '#4338ca');
+      wGrad.addColorStop(1, '#1e1b4b');
+      ctx.fillStyle = wGrad;
+      ctx.fill();
+      ctx.strokeStyle = ol;
+      ctx.lineWidth = 0.85;
+      ctx.stroke();
+      fillRoundRect(ctx, hx - 5.0, hy - 5.3, 10.0, 1.3, 0.5, '#fbbf24', ol, 0.5);
+      return;
+    }
+
+    if (hatVal === 'alice_band') {
+      // Ragnarok Classic Alice Maid Lace Headband
+      fillRoundRect(ctx, hx - 5.4, hy - 6.0, 10.8, 2.2, 1.1, '#ffffff', ol, 0.8);
+      fillEllipse(ctx, hx - 5.2, hy - 4.6, 1.5, 1.2, '#f43f5e', ol, 0.55);
+      fillEllipse(ctx, hx + 5.2, hy - 4.6, 1.5, 1.2, '#f43f5e', ol, 0.55);
+      return;
+    }
+
+    if (hatVal === 'corsair_hat') {
+      // Ragnarok Drake / Corsair Pirate Hat with Skull Emblem
+      fillEllipse(ctx, hx, hy - 4.0, 8.4, 2.2, '#1e293b', ol, 0.9);
+      ctx.beginPath();
+      ctx.moveTo(hx - 6.5, hy - 4.0);
+      ctx.quadraticCurveTo(hx, hy - 10.2, hx + 6.5, hy - 4.0);
+      ctx.closePath();
+      ctx.fillStyle = '#0f172a';
+      ctx.fill();
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+      if (dir !== 'up') {
+        fillEllipse(ctx, hx, hy - 6.2, 1.5, 1.4, '#f8fafc', ol, 0.5);
+      }
+      return;
+    }
+
+    if (hatVal === 'apple_archer') {
+      // Ragnarok Classic Apple of Archer (Red Apple pierced by Golden Arrow on head!)
+      fillEllipse(ctx, hx, hy - 7.0, 2.3, 2.2, '#ef4444', ol, 0.8);
+      fillEllipse(ctx, hx - 0.7, hy - 7.6, 0.7, 0.5, '#fca5a5');
+      // Arrow shaft piercing horizontally through apple
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.moveTo(hx - 5.5, hy - 7.0);
+      ctx.lineTo(hx + 5.5, hy - 7.0);
+      ctx.stroke();
+      // Arrow head & fletching
+      fillEllipse(ctx, hx + 5.5, hy - 7.0, 1.1, 0.7, '#38bdf8', ol, 0.5);
+      fillRoundRect(ctx, hx - 6.2, hy - 7.7, 1.6, 1.4, 0.3, '#f8fafc', ol, 0.45);
+      return;
+    }
+
+    if (hatVal === 'bunny_band') {
+      // Ragnarok Kafra Bunny Band (Tall White & Pink Rabbit Ears)
+      [-1, 1].forEach((side) => {
+        const bx = hx + side * 3.0;
+        fillRoundRect(ctx, bx - 1.4, hy - 10.8, 2.8, 6.4, 1.4, '#ffffff', ol, 0.8);
+        fillRoundRect(ctx, bx - 0.7, hy - 9.8, 1.4, 4.6, 0.7, '#fda4af');
+      });
+      return;
+    }
+
+    if (hatVal === 'leaf_head') {
+      // Ragnarok Smokie Leaf / Yggdrasil Sprout on top of head
+      ctx.strokeStyle = '#15803d';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(hx, hy - 5.2);
+      ctx.quadraticCurveTo(hx + 0.5, hy - 8.5, hx + 2.5, hy - 9.5);
+      ctx.stroke();
+      fillEllipse(ctx, hx + 2.8, hy - 9.5, 2.4, 1.3, '#4ade80', ol, 0.7);
+      fillEllipse(ctx, hx - 1.2, hy - 8.2, 1.8, 1.0, '#22c55e', ol, 0.65);
+      return;
+    }
+
     const hatColor = hatVal;
     const hatHi = shadeHex(hatColor, 0.32);
     const hatSh = shadeHex(hatColor, -0.28);
@@ -807,6 +1007,353 @@ window.Sprites = (function () {
     fillRoundRect(ctx, brimX, hy - 3.8, 13.2, 2.1, 1.0, trimColor || '#ffd166', ol, 0.85);
     if (dir !== 'up') {
       fillRoundRect(ctx, hx - 1.3, hy - 5.9, 2.6, 1.7, 0.5, '#fffbeb', ol, 0.5);
+    }
+  }
+
+  // ==================== RAGNAROK MIDDLE HEADGEAR (EARS, HEAD WINGS, BACK WINGS, BLUSH, AURA, EYEWEAR) ====================
+  function drawHeadMiddleBack25D(ctx, cx, cy, midVal, dir, tick, ol) {
+    if (!['angel_wing_back', 'devil_wing_back', 'fairy_wing', 'golden_wing'].includes(midVal)) return;
+    const flap = Math.sin((tick || 0) / 9) * 1.1;
+
+    if (midVal === 'angel_wing_back' || midVal === 'golden_wing') {
+      const isGold = midVal === 'golden_wing';
+      const cTop = isGold ? '#fef08a' : '#ffffff';
+      const cMid = isGold ? '#f59e0b' : '#e0f2fe';
+      const cBot = isGold ? '#b45309' : '#bae6fd';
+      [-1, 1].forEach((side) => {
+        ctx.save();
+        ctx.translate(cx + side * 3.2, cy);
+        ctx.scale(side, 1);
+        const wGrad = ctx.createLinearGradient(0, -6, 9, 4);
+        wGrad.addColorStop(0, cTop);
+        wGrad.addColorStop(0.6, cMid);
+        wGrad.addColorStop(1, cBot);
+        ctx.beginPath();
+        ctx.moveTo(0, -1.5);
+        ctx.quadraticCurveTo(5.5, -7.2 - flap, 9.2, -3.5 - flap * 0.6);
+        ctx.quadraticCurveTo(7.4, -0.5, 8.2, 1.6);
+        ctx.quadraticCurveTo(5.4, 2.2, 6.2, 4.2);
+        ctx.quadraticCurveTo(2.8, 3.6, 0, 1.8);
+        ctx.closePath();
+        ctx.fillStyle = wGrad;
+        ctx.fill();
+        ctx.strokeStyle = isGold ? '#78350f' : '#0284c7';
+        ctx.lineWidth = 0.85;
+        ctx.stroke();
+        ctx.restore();
+      });
+      return;
+    }
+
+    if (midVal === 'devil_wing_back') {
+      // Dark Crimson Demon Bat Wings
+      [-1, 1].forEach((side) => {
+        ctx.save();
+        ctx.translate(cx + side * 3.2, cy);
+        ctx.scale(side, 1);
+        const dGrad = ctx.createLinearGradient(0, -6, 9, 4);
+        dGrad.addColorStop(0, '#991b1b');
+        dGrad.addColorStop(0.5, '#450a0a');
+        dGrad.addColorStop(1, '#0f172a');
+        ctx.beginPath();
+        ctx.moveTo(0, -1.2);
+        ctx.lineTo(5.2, -6.5 - flap);
+        ctx.lineTo(9.4, -2.5 - flap * 0.5);
+        ctx.lineTo(6.4, -0.4);
+        ctx.lineTo(7.8, 3.5);
+        ctx.lineTo(3.8, 1.6);
+        ctx.lineTo(0, 2.2);
+        ctx.closePath();
+        ctx.fillStyle = dGrad;
+        ctx.fill();
+        ctx.strokeStyle = ol;
+        ctx.lineWidth = 0.85;
+        ctx.stroke();
+        ctx.restore();
+      });
+      return;
+    }
+
+    if (midVal === 'fairy_wing') {
+      // Glowing Iridescent Butterfly / Archeling Fairy Wings
+      [-1, 1].forEach((side) => {
+        ctx.save();
+        ctx.translate(cx + side * 3.0, cy);
+        ctx.scale(side, 1);
+        fillEllipse(ctx, 4.6, -2.8 - flap * 0.6, 4.4, 2.6, 'rgba(103, 232, 249, 0.72)', '#0284c7', 0.8);
+        fillEllipse(ctx, 3.8, 2.0 + flap * 0.3, 3.2, 2.0, 'rgba(244, 114, 182, 0.72)', '#db2777', 0.8);
+        ctx.restore();
+      });
+    }
+  }
+
+  function drawHeadMiddleFront25D(ctx, hx, hy, midVal, dir, tick, ol) {
+    if (midVal === 'angel_ears') {
+      // Ragnarok Angel Wing Ears (White feathered wings on sides of head)
+      [-1, 1].forEach((side) => {
+        if (dir === 'left' && side > 0) return;
+        if (dir === 'right' && side < 0) return;
+        ctx.save();
+        ctx.translate(hx + side * 5.8, hy + 0.2);
+        ctx.scale(side, 1);
+        ctx.beginPath();
+        ctx.moveTo(0, 1.0);
+        ctx.lineTo(3.6, -2.6);
+        ctx.lineTo(2.4, -0.2);
+        ctx.lineTo(3.8, 0.8);
+        ctx.lineTo(0, 2.0);
+        ctx.closePath();
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+        ctx.restore();
+      });
+      return;
+    }
+
+    if (midVal === 'evil_ears') {
+      // Ragnarok Evil Wing Ears (Dark Bat Wing Ears on sides of head)
+      [-1, 1].forEach((side) => {
+        if (dir === 'left' && side > 0) return;
+        if (dir === 'right' && side < 0) return;
+        ctx.save();
+        ctx.translate(hx + side * 5.8, hy + 0.2);
+        ctx.scale(side, 1);
+        ctx.beginPath();
+        ctx.moveTo(0, 0.8);
+        ctx.lineTo(3.8, -2.8);
+        ctx.lineTo(2.6, 0.2);
+        ctx.lineTo(3.6, 1.8);
+        ctx.lineTo(0, 1.8);
+        ctx.closePath();
+        ctx.fillStyle = '#31102f';
+        ctx.fill();
+        ctx.strokeStyle = '#e11d48';
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+        ctx.restore();
+      });
+      return;
+    }
+
+    if (midVal === 'elf_ears') {
+      // Ragnarok Pointed High-Elf Ears
+      [-1, 1].forEach((side) => {
+        if (dir === 'left' && side > 0) return;
+        if (dir === 'right' && side < 0) return;
+        ctx.save();
+        ctx.translate(hx + side * 5.8, hy + 0.6);
+        ctx.scale(side, 1);
+        ctx.beginPath();
+        ctx.moveTo(0, -1.0);
+        ctx.lineTo(3.8, -2.2);
+        ctx.lineTo(0.4, 1.6);
+        ctx.closePath();
+        ctx.fillStyle = '#fde0c4';
+        ctx.fill();
+        ctx.strokeStyle = ol;
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+        ctx.restore();
+      });
+      return;
+    }
+
+    if (midVal === 'robo_ears') {
+      // Ragnarok Chii / Cyber Persocom Mechanical Ears
+      [-1, 1].forEach((side) => {
+        if (dir === 'left' && side > 0) return;
+        if (dir === 'right' && side < 0) return;
+        const ex = hx + side * 6.2;
+        fillRoundRect(ctx, ex - 1.2, hy - 1.2, 2.4, 3.2, 0.8, '#e2e8f0', ol, 0.75);
+        fillEllipse(ctx, ex, hy + 0.4, 0.65, 0.65, '#38bdf8');
+      });
+      return;
+    }
+
+    if (midVal === 'floating_aura') {
+      // Ragnarok Lv.99 / Spirit Spheres orbiting character head
+      for (let i = 0; i < 3; i++) {
+        const ang = (tick || 0) / 14 + (i * Math.PI * 2) / 3;
+        const ox = hx + Math.cos(ang) * 7.8;
+        const oy = hy - 1.5 + Math.sin(ang) * 2.4;
+        fillEllipse(ctx, ox, oy, 2.0, 2.0, 'rgba(56, 189, 248, 0.35)');
+        fillEllipse(ctx, ox, oy, 1.1, 1.1, '#e0f2fe', '#0284c7', 0.5);
+      }
+      return;
+    }
+
+    if (dir === 'up') return;
+
+    if (midVal === 'blush_stickers') {
+      // Ragnarok Cute Pink Stripped Blush Cheek Stickers
+      if (dir === 'down') {
+        fillEllipse(ctx, hx - 3.6, hy + 1.8, 1.8, 1.1, 'rgba(244, 63, 94, 0.72)');
+        fillEllipse(ctx, hx + 3.6, hy + 1.8, 1.8, 1.1, 'rgba(244, 63, 94, 0.72)');
+      } else {
+        const sign = dir === 'left' ? -1 : 1;
+        fillEllipse(ctx, hx + sign * 2.0, hy + 1.8, 1.8, 1.1, 'rgba(244, 63, 94, 0.72)');
+      }
+      return;
+    }
+
+    if (midVal === 'monocle') {
+      // Ragnarok Gentleman Golden Monocle with Chain
+      const mx = dir === 'down' ? hx + 2.6 : hx + (dir === 'left' ? -2.5 : 2.5);
+      fillEllipse(ctx, mx, hy + 0.1, 1.9, 1.9, 'rgba(125, 211, 252, 0.28)', '#fbbf24', 0.9);
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(mx + 1.6, hy + 0.8);
+      ctx.lineTo(mx + 1.8, hy + 3.8);
+      ctx.stroke();
+      return;
+    }
+
+    if (midVal === 'eyepatch') {
+      // Ragnarok Black Pirate Eyepatch
+      const ex = dir === 'down' ? hx + 2.6 : hx + (dir === 'left' ? -2.5 : 2.5);
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(hx - 5.5, hy - 1.6);
+      ctx.lineTo(hx + 5.5, hy + 0.6);
+      ctx.stroke();
+      fillRoundRect(ctx, ex - 1.7, hy - 1.2, 3.4, 2.6, 0.9, '#0f172a', '#475569', 0.6);
+      return;
+    }
+
+    if (midVal === 'cyclops_visor') {
+      // Ragnarok Cyber / Cyclops Red Laser Visor
+      if (dir === 'down') {
+        fillRoundRect(ctx, hx - 4.8, hy - 1.0, 9.6, 2.2, 0.9, '#1e293b', ol, 0.75);
+        fillRoundRect(ctx, hx - 3.8, hy - 0.5, 7.6, 1.1, 0.5, '#ef4444');
+      } else {
+        const sign = dir === 'left' ? -1 : 1;
+        fillRoundRect(ctx, hx + (sign < 0 ? -4.8 : 0.2), hy - 1.0, 4.6, 2.2, 0.8, '#1e293b', ol, 0.75);
+        fillRoundRect(ctx, hx + (sign < 0 ? -4.2 : 0.8), hy - 0.5, 3.2, 1.1, 0.4, '#ef4444');
+      }
+    }
+  }
+
+  // ==================== RAGNAROK LOWER HEADGEAR (MOUTH ITEMS, MASKS, PIPE, ROSE, TOAST, SCARF) ====================
+  function drawHeadLower25D(ctx, hx, hy, lowVal, dir, tick, ol) {
+    if (lowVal === 'red_scarf') {
+      // Ragnarok Cozy Crimson Muffler Scarf around neck (visible from all directions)
+      fillRoundRect(ctx, hx - 4.8, hy + 3.6, 9.6, 2.4, 1.1, '#dc2626', ol, 0.8);
+      if (dir !== 'up') {
+        fillRoundRect(ctx, hx + 1.4, hy + 4.8, 2.4, 4.2, 0.8, '#b91c1c', ol, 0.75);
+      }
+      return;
+    }
+
+    if (dir === 'up') return;
+    const sign = dir === 'left' ? -1 : 1;
+    const mx = dir === 'down' ? hx : hx + sign * 3.0;
+    const my = hy + 2.6;
+
+    if (lowVal === 'pipe') {
+      // Ragnarok Classic Gentleman Smoking Pipe + Gentle Smoke Puff
+      const dirSign = dir === 'left' ? -1 : 1;
+      ctx.strokeStyle = '#78350f';
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.lineTo(mx + dirSign * 4.2, my + 0.8);
+      ctx.stroke();
+      fillRoundRect(ctx, mx + dirSign * 4.2 - 1.2, my - 0.8, 2.5, 2.4, 0.7, '#92400e', ol, 0.7);
+      // Floating smoke puff
+      const puffOff = ((tick || 0) % 40) / 40;
+      fillEllipse(ctx, mx + dirSign * 4.6, my - 2.0 - puffOff * 3.5, 1.2 + puffOff, 1.0 + puffOff * 0.8, `rgba(241, 245, 249, ${0.7 - puffOff * 0.65})`);
+      return;
+    }
+
+    if (lowVal === 'rose_mouth') {
+      // Ragnarok Romantic Red Rose in Mouth
+      const dirSign = dir === 'left' ? -1 : 1;
+      ctx.strokeStyle = '#15803d';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(mx - dirSign * 1.5, my + 0.2);
+      ctx.lineTo(mx + dirSign * 4.4, my - 0.3);
+      ctx.stroke();
+      fillEllipse(ctx, mx + dirSign * 4.5, my - 0.4, 1.8, 1.6, '#e11d48', ol, 0.7);
+      fillEllipse(ctx, mx + dirSign * 4.3, my - 0.6, 0.8, 0.7, '#fda4af');
+      return;
+    }
+
+    if (lowVal === 'toast_mouth') {
+      // Ragnarok Late-for-School Jam Toast in Mouth
+      fillRoundRect(ctx, mx - 2.2, my - 0.3, 4.4, 3.6, 0.9, '#fef3c7', '#b45309', 0.85);
+      fillRoundRect(ctx, mx - 1.3, my + 0.5, 2.6, 1.8, 0.5, '#ef4444');
+      return;
+    }
+
+    if (lowVal === 'fish_mouth') {
+      // Ragnarok Tasty Blue Fish in Mouth
+      const dirSign = dir === 'left' ? -1 : 1;
+      fillEllipse(ctx, mx + dirSign * 2.2, my + 0.2, 2.6, 1.3, '#38bdf8', ol, 0.75);
+      ctx.beginPath();
+      ctx.moveTo(mx + dirSign * 4.4, my + 0.2);
+      ctx.lineTo(mx + dirSign * 6.0, my - 1.2);
+      ctx.lineTo(mx + dirSign * 6.0, my + 1.5);
+      ctx.closePath();
+      ctx.fillStyle = '#0284c7';
+      ctx.fill();
+      ctx.strokeStyle = ol;
+      ctx.lineWidth = 0.65;
+      ctx.stroke();
+      return;
+    }
+
+    if (lowVal === 'grass_leaf') {
+      // Ragnarok Four-Leaf Clover / Grass Stem in Mouth
+      const dirSign = dir === 'left' ? -1 : 1;
+      ctx.strokeStyle = '#16a34a';
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.quadraticCurveTo(mx + dirSign * 3.0, my + 0.3, mx + dirSign * 4.8, my + 1.4);
+      ctx.stroke();
+      fillEllipse(ctx, mx + dirSign * 4.8, my + 1.2, 1.4, 0.9, '#4ade80', ol, 0.6);
+      return;
+    }
+
+    if (lowVal === 'bubblegum') {
+      // Ragnarok Pink Bubblegum Balloon in Mouth (pulses gently!)
+      const bSize = 1.9 + Math.sin((tick || 0) / 12) * 0.35;
+      const dirSign = dir === 'left' ? -1 : 1;
+      const bx = dir === 'down' ? mx + 0.6 : mx + dirSign * 1.8;
+      fillEllipse(ctx, bx, my + 0.3, bSize, bSize * 0.92, 'rgba(244, 114, 182, 0.88)', '#be185d', 0.7);
+      fillEllipse(ctx, bx - 0.6, my - 0.3, 0.55, 0.45, '#ffffff');
+      return;
+    }
+
+    if (lowVal === 'ninja_mask') {
+      // Ragnarok Assassin / Ninja Dark Lower Face Mask
+      const w = dir === 'down' ? 8.8 : 5.4;
+      const x0 = dir === 'down' ? hx - 4.4 : hx + (sign < 0 ? -4.8 : -0.6);
+      fillRoundRect(ctx, x0, hy + 1.1, w, 3.6, 1.3, '#1e293b', ol, 0.8);
+      fillRoundRect(ctx, x0 + 0.8, hy + 1.5, w - 1.6, 0.7, 0.3, '#475569');
+      return;
+    }
+
+    if (lowVal === 'flu_mask') {
+      // Ragnarok White Flu / Hygienic Face Mask
+      const w = dir === 'down' ? 8.4 : 5.2;
+      const x0 = dir === 'down' ? hx - 4.2 : hx + (sign < 0 ? -4.6 : -0.6);
+      fillRoundRect(ctx, x0, hy + 1.2, w, 3.4, 1.2, '#f8fafc', '#64748b', 0.75);
+      return;
+    }
+
+    if (lowVal === 'gangster_scarf') {
+      // Ragnarok Gangster Red Bandana Mask
+      const w = dir === 'down' ? 8.8 : 5.4;
+      const x0 = dir === 'down' ? hx - 4.4 : hx + (sign < 0 ? -4.8 : -0.6);
+      fillRoundRect(ctx, x0, hy + 1.2, w, 3.7, 1.2, '#dc2626', ol, 0.8);
+      fillEllipse(ctx, mx, hy + 2.8, 1.0, 0.5, '#fef08a');
     }
   }
 

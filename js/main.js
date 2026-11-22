@@ -19,7 +19,9 @@
     shirtStyle: 'jacket',
     pantsColor: '#2c4969',
     shoesColor: '#5c3317',
-    hatColor: '#c85a17'
+    hatColor: '#c85a17',
+    headMiddle: '',
+    headLower: ''
   };
 
   // DOM References
@@ -182,13 +184,15 @@
       pants: p.pantsColor,
       shoes: p.shoesColor,
       hat: p.hatColor || '',
+      headMiddle: p.headMiddle || '',
+      headLower: p.headLower || '',
       hatTrim: '#ffd166',
       backpack: true
     };
   }
 
   function styleCacheKey(prefix, s) {
-    return [prefix, s.skin, s.hair, s.hairStyle, s.faceStyle, s.shirt, s.shirtStyle, s.pants, s.shoes, s.hat].join('_');
+    return [prefix, s.skin, s.hair, s.hairStyle, s.faceStyle, s.shirt, s.shirtStyle, s.pants, s.shoes, s.hat, s.headMiddle, s.headLower].join('_');
   }
 
   function applyPlayerAppearance(prof) {
@@ -2042,7 +2046,9 @@
                   shirtStyle: peer.shirtStyle || 'jacket',
                   pants: peer.pants || '#2c4969',
                   shoes: peer.shoes || '#5c3317',
-                  hat: peer.hat || ''
+                  hat: peer.hat || '',
+                  headMiddle: peer.headMiddle || '',
+                  headLower: peer.headLower || ''
                 };
                 if (peer.isTeacher) drawTeacherAdminAura(ctx, peer.rx + 16, peer.ry + 28, tick);
                 Sprites.drawCharacter(ctx, peer.rx, peer.ry - 6, pStyle, peer.dir || 'down', peer.frame || 0, 2, tick + pi * 29);
@@ -2357,7 +2363,9 @@
               shirtStyle: peer.shirtStyle || 'jacket',
               pants: peer.pants || '#2c4969',
               shoes: peer.shoes || '#5c3317',
-              hat: peer.hat || ''
+              hat: peer.hat || '',
+              headMiddle: peer.headMiddle || '',
+              headLower: peer.headLower || ''
             };
             if (peer.isTeacher) {
               drawTeacherAdminAura(ctx, peer.rx + 16, peer.ry + 28, tick);
@@ -2763,11 +2771,21 @@
       { val: '#d97706', name: 'บูทเหลือง' }
     ],
     hatStylePills: [
-      { val: '', label: '✕ ไม่ใส่หมวก' },
-      { val: 'straw', label: '👒 หมวกฟาง Stardew' },
+      { val: '', label: '✕ ไม่ใส่ส่วนบน' },
+      { val: 'poring_hat', label: '🍮 หมวก Poring (RO)' },
+      { val: 'valkyrie_helm', label: '🪶 หมวก Valkyrie Helm' },
+      { val: 'bapho_horns', label: '😈 เขา Baphomet Horns' },
+      { val: 'angel_halo', label: '😇 วงแหวน Angel Halo' },
+      { val: 'wizard_hat', label: '🧙 หมวกจอมเวท Wizard' },
+      { val: 'corsair_hat', label: '🏴‍☠️ หมวกโจรสลัด Corsair' },
+      { val: 'alice_band', label: '🎀 ที่คาดผมเมด Alice' },
+      { val: 'apple_archer', label: '🍎 แอปเปิลปักธนู Archer' },
+      { val: 'bunny_band', label: '🐰 หูกระต่าย Kafra' },
+      { val: 'leaf_head', label: '🌱 ใบไม้ Smokie Leaf' },
+      { val: 'crown', label: '👑 มงกุฎราชา Crown' },
+      { val: 'catears', label: '🐱 หูแมวดำ Neko' },
       { val: 'headphones', label: '🎧 หูฟังเกมมิ่ง' },
-      { val: 'catears', label: '🐱 หูแมวเนโกะ' },
-      { val: 'crown', label: '👑 มงกุฎทอง' }
+      { val: 'straw', label: '👒 หมวกฟาง Stardew' }
     ],
     hatColor: [
       { val: '', name: 'ไม่ใส่หมวก (โชว์ทรงผม)' },
@@ -2777,6 +2795,35 @@
       { val: '#2d3748', name: 'หมวกแก๊ปดำ' },
       { val: '#b91c1c', name: 'หมวกแก๊ปแดง' },
       { val: '#047857', name: 'หมวกแก๊ปเขียว' }
+    ],
+    headMiddle: [
+      { val: '', label: '✕ ไม่ใส่ส่วนกลาง' },
+      { val: 'angel_ears', label: '🪽 หูปีกนางฟ้า (Angel Wing Ears)' },
+      { val: 'evil_ears', label: '🦇 หูปีกปีศาจ (Evil Wing Ears)' },
+      { val: 'elf_ears', label: '🧝 หูเอลฟ์ (Elf Ears)' },
+      { val: 'robo_ears', label: '🤖 หูไซเบอร์ (Chii Ears)' },
+      { val: 'angel_wing_back', label: '🕊️ ปีกนางฟ้าใหญ่ (Archangel Wings)' },
+      { val: 'devil_wing_back', label: '👿 ปีกเดวิลรุ้งดำ (Deviling Wings)' },
+      { val: 'fairy_wing', label: '🦋 ปีกภูตผีเสื้อ (Fairy Wings)' },
+      { val: 'golden_wing', label: '✨ ปีกทองคำ (Golden Wings)' },
+      { val: 'blush_stickers', label: '😊 แก้มแดง (Blush)' },
+      { val: 'monocle', label: '🧐 แว่นตาข้างเดียว (Monocle)' },
+      { val: 'eyepatch', label: '🏴‍☠️ ผ้าคาดตา (Eyepatch)' },
+      { val: 'cyclops_visor', label: '🚨 แว่นเลเซอร์ (Cyclops Visor)' },
+      { val: 'floating_aura', label: '🔮 ลูกแก้วออร่า Lv.99 (Spirit Orbs)' }
+    ],
+    headLower: [
+      { val: '', label: '✕ ไม่ใส่ส่วนล่าง' },
+      { val: 'pipe', label: '🪈 คาบไปป์ (Gentleman Pipe)' },
+      { val: 'rose_mouth', label: '🌹 คาบดอกกุหลาบ (Romantic Rose)' },
+      { val: 'toast_mouth', label: '🍞 คาบขนมปังทาแยม (Crunch Toast)' },
+      { val: 'fish_mouth', label: '🐟 คาบปลาสด (Tasty Fish)' },
+      { val: 'grass_leaf', label: '🌿 คาบใบหญ้า (Four-Leaf Clover)' },
+      { val: 'bubblegum', label: '🫧 เป่าหมากฝรั่ง (Bubblegum)' },
+      { val: 'ninja_mask', label: '🥷 ผ้าปิดปากนินจา (Assassin Mask)' },
+      { val: 'flu_mask', label: '😷 หน้ากากอนามัย (Flu Mask)' },
+      { val: 'gangster_scarf', label: '🧣 ผ้าโพกปากแดง (Gangster Mask)' },
+      { val: 'red_scarf', label: '🧣 ผ้าพันคอแดง (Crimson Scarf)' }
     ]
   };
 
@@ -2903,7 +2950,7 @@
         b.onclick = () => {
           SoundFX.click();
           custDraft[field] = opt.val;
-          if (field === 'hairStyle' && custDraft.hatColor && !['headphones', 'catears', 'crown'].includes(custDraft.hatColor)) {
+          if (field === 'hairStyle' && custDraft.hatColor && !['headphones', 'catears', 'crown', 'poring_hat', 'valkyrie_helm', 'bapho_horns', 'angel_halo', 'alice_band', 'apple_archer', 'bunny_band', 'leaf_head'].includes(custDraft.hatColor)) {
             // Auto-remove full cap/straw hat when picking a hairstyle so player sees it clearly
             custDraft.hatColor = '';
           }
@@ -2939,6 +2986,10 @@
       col.appendChild(g);
     };
 
+    addPillGroup('👑 แฟชั่นส่วนบน — หมวก & Headgear (Ragnarok Upper Headgear)', 'hatColor', CUSTOM_OPTIONS.hatStylePills);
+    addSwatchGroup('🧢 สีหมวกแก๊ป (Colored Caps — กด ✕ เพื่อถอดส่วนบน)', 'hatColor', CUSTOM_OPTIONS.hatColor);
+    addPillGroup('🪽 แฟชั่นส่วนกลาง — หู & ปีกหลัง (Ragnarok Middle Headgear & Wings)', 'headMiddle', CUSTOM_OPTIONS.headMiddle);
+    addPillGroup('🌹 แฟชั่นส่วนล่าง — ที่คาบปาก ผ้าปิดปาก & ไปป์ (Ragnarok Lower Headgear)', 'headLower', CUSTOM_OPTIONS.headLower);
     addPillGroup('💇 ทรงผม 2.5D (Hairstyle — 10 สไตล์)', 'hairStyle', CUSTOM_OPTIONS.hairStyle);
     addSwatchGroup('🎨 สีผม (Hair Color — 10 เฉดสี)', 'hairColor', CUSTOM_OPTIONS.hairColor);
     addPillGroup('😊 ใบหน้าและแว่นตา (Face & Eyewear — 8 สไตล์)', 'faceStyle', CUSTOM_OPTIONS.faceStyle);
@@ -2947,8 +2998,6 @@
     addSwatchGroup('🎨 สีชุดหลัก (Outfit Color)', 'shirtColor', CUSTOM_OPTIONS.shirtColor);
     addSwatchGroup('👖 สีกางเกง / เอี๊ยม (Pants Color)', 'pantsColor', CUSTOM_OPTIONS.pantsColor);
     addSwatchGroup('👟 สีรองเท้า (Shoes Color)', 'shoesColor', CUSTOM_OPTIONS.shoesColor);
-    addPillGroup('🎩 เครื่องประดับศีรษะพิเศษ (Special Headgear)', 'hatColor', CUSTOM_OPTIONS.hatStylePills);
-    addSwatchGroup('🧢 หมวกแก๊ปสีต่าง ๆ (Colored Caps — กด ✕ เพื่อถอด)', 'hatColor', CUSTOM_OPTIONS.hatColor);
   }
 
   function randomizeProfile(target) {
@@ -2962,7 +3011,9 @@
     target.pantsColor = pick(CUSTOM_OPTIONS.pantsColor);
     target.shoesColor = pick(CUSTOM_OPTIONS.shoesColor);
     const allHats = [...CUSTOM_OPTIONS.hatStylePills, ...CUSTOM_OPTIONS.hatColor];
-    target.hatColor = Math.random() < 0.55 ? '' : pick(allHats);
+    target.hatColor = Math.random() < 0.35 ? '' : pick(allHats);
+    target.headMiddle = Math.random() < 0.35 ? '' : pick(CUSTOM_OPTIONS.headMiddle);
+    target.headLower = Math.random() < 0.35 ? '' : pick(CUSTOM_OPTIONS.headLower);
   }
 
   function openCustomizerModal() {
@@ -3034,7 +3085,7 @@
     if (inStudentClass && inStudentClass.value.trim()) targetProfile.studentClass = inStudentClass.value.trim();
     if (inCollegeName && inCollegeName.value.trim()) targetProfile.collegeName = inCollegeName.value.trim();
     if (inInstructorName && inInstructorName.value.trim()) targetProfile.instructorName = inInstructorName.value.trim();
-    const appearKeys = ['skin', 'hairStyle', 'hairColor', 'faceStyle', 'shirtColor', 'shirtStyle', 'pantsColor', 'shoesColor', 'hatColor'];
+    const appearKeys = ['skin', 'hairStyle', 'hairColor', 'faceStyle', 'shirtColor', 'shirtStyle', 'pantsColor', 'shoesColor', 'hatColor', 'headMiddle', 'headLower'];
     appearKeys.forEach((k) => {
       if (setupProfile[k] !== undefined) targetProfile[k] = setupProfile[k];
     });
@@ -3568,6 +3619,8 @@
         pants: GD.PLAYER_STYLE.pants,
         shoes: GD.PLAYER_STYLE.shoes,
         hat: GD.PLAYER_STYLE.hat || '',
+        headMiddle: GD.PLAYER_STYLE.headMiddle || '',
+        headLower: GD.PLAYER_STYLE.headLower || '',
         zone: getZoneName(Math.floor((state.player.x + 16) / TILE), Math.floor((state.player.y + 16) / TILE)),
         insideBuildingId: state.insideBuildingId || null,
         completedUnits: state.completedUnits,

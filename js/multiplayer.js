@@ -603,7 +603,7 @@ window.Multiplayer = (function () {
       const p = hooks.getLocalPlayer();
       if (!p) return;
       const now = Date.now();
-      const sig = `${p.x},${p.y},${p.dir},${p.frame},${p.completedUnits.length},${p.bytes},${p.zone},${p.insideBuildingId || ''},${p.name},${p.hairStyle},${p.hair},${p.faceStyle},${p.skin},${p.shirt},${p.shirtStyle},${p.pants},${p.shoes},${p.hat},${p.isTeacher ? 1 : 0}`;
+      const sig = `${p.x},${p.y},${p.dir},${p.frame},${p.completedUnits.length},${p.bytes},${p.zone},${p.insideBuildingId || ''},${p.name},${p.hairStyle},${p.hair},${p.faceStyle},${p.skin},${p.shirt},${p.shirtStyle},${p.pants},${p.shoes},${p.hat},${p.headMiddle || ''},${p.headLower || ''},${p.isTeacher ? 1 : 0}`;
       if (!force && sig === fbLastSentSig && now - fbLastSentAt < 5000) return;
       fbLastSentSig = sig;
       fbLastSentAt = now;
@@ -626,6 +626,8 @@ window.Multiplayer = (function () {
         pants: p.pants,
         shoes: p.shoes,
         hat: p.hat || '',
+        headMiddle: p.headMiddle || '',
+        headLower: p.headLower || '',
         zone: p.zone,
         completedUnits: p.completedUnits || [],
         bestQuiz: p.bestQuiz || null,
