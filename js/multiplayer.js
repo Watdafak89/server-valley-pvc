@@ -37,16 +37,40 @@ window.Multiplayer = (function () {
   let lastChatSeq = 0;
   let lastAdminCmdId = '';
   let roomJoinedAt = 0;
+  let hadOnlinePeersInRoom = false;
 
   // Callbacks wired by main.js
   let hooks = {
     getLocalPlayer: () => null,
     onCoopUnitUnlocked: () => {},
     onChatMessage: () => {},
+    onChatCleared: () => {},
     onStatusChange: () => {},
     onToast: () => {},
     onAdminCommand: () => {}
   };
+
+  function clearLocalChat(showSysMsg = '') {
+    chatLog.length = 0;
+    lastChatSeq = 0;
+    hooks.onChatCleared();
+    if (showSysMsg) {
+      pushChat({
+        msgId: 'sys_clear_' + Date.now(),
+        system: true,
+        text: showSysMsg,
+        time: nowTimeStr()
+      });
+    }
+  }
+
+  function clearRoomChatIfEmpty(reasonMsg = '🧹 ล้างประวัติช่องแชทอัตโนมัติ เนื่องจากไม่มีผู้เล่นออนไลน์อยู่ในห้อง') {
+    if (Object.keys(peers).length > 0) return;
+    if (mode === 'firebase' && fbDb && fbRoomPath) {
+      fbDb.ref(fbRoomPath + '/chats').remove().catch(() => {});
+    }
+    clearLocalChat(connected ? reasonMsg : '');
+  }
 
   function handleIncomingAdminCmd(cmd) {
     if (!cmd || !cmd.cmdId || cmd.cmdId === lastAdminCmdId) return;
@@ -93,6 +117,7 @@ window.Multiplayer = (function () {
 
   function upsertPeer(data) {
     if (!data || !data.id || data.id === myId) return;
+    hadOnlinePeersInRoom = true;
     const prev = peers[data.id];
     if (!prev) {
       peers[data.id] = {
@@ -113,9 +138,15 @@ window.Multiplayer = (function () {
 
   function cleanupStalePeers() {
     const cutoff = Date.now() - 12000;
+    const beforeCount = Object.keys(peers).length;
     Object.keys(peers).forEach((id) => {
       if (peers[id].lastSeen < cutoff) delete peers[id];
     });
+    const afterCount = Object.keys(peers).length;
+    if (beforeCount > 0 && afterCount === 0 && hadOnlinePeersInRoom) {
+      hadOnlinePeersInRoom = false;
+      clearRoomChatIfEmpty('🧹 ล้างช่องแชทอัตโนมัติ เนื่องจากผู้เล่นคนอื่นออกจากห้องหมดแล้ว');
+    }
   }
 
   function setStatus(newMode, isConn, text) {
@@ -126,12 +157,20 @@ window.Multiplayer = (function () {
   }
 
   function disconnect(silent = false) {
+    const wasFirebase = mode === 'firebase' && fbDb && fbRoomPath;
+    const noOtherPeers = Object.keys(peers).length === 0;
+
     if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
     if (bc) { try { bc.close(); } catch (e) {} bc = null; }
     if (hostConn) { try { hostConn.close(); } catch (e) {} hostConn = null; }
     Object.values(clientConns).forEach((c) => { try { c.close(); } catch (e) {} });
     clientConns = {};
     if (peer) { try { peer.destroy(); } catch (e) {} peer = null; }
+
+    // If this player was the last person online in the Firebase room, wipe the room's chat node before closing
+    if (wasFirebase && noOtherPeers) {
+      try { fbDb.ref(fbRoomPath + '/chats').remove(); } catch (e) {}
+    }
 
     // Clean up Firebase Realtime DB listeners & remove my presence node
     fbListeners.forEach((fn) => { try { fn(); } catch (e) {} });
@@ -140,9 +179,11 @@ window.Multiplayer = (function () {
     if (fbApp) { try { fbApp.delete(); } catch (e) {} fbApp = null; fbDb = null; }
 
     Object.keys(peers).forEach((k) => delete peers[k]);
+    hadOnlinePeersInRoom = false;
     roomCode = '';
+    clearLocalChat('');
     setStatus('offline', false, 'ออฟไลน์ (เล่นคนเดียว)');
-    if (!silent) hooks.onToast('🔌 ออกจากห้อง Multiplayer แล้ว');
+    if (!silent) hooks.onToast('🔌 ออกจากห้อง Multiplayer และล้างช่องแชทเรียบร้อยแล้ว');
   }
 
   function makePayload() {
@@ -332,8 +373,25 @@ window.Multiplayer = (function () {
           hooks.onToast(`🏫 เชื่อมต่อ LAN Server สำเร็จ!`, true);
         }
         cleanupStalePeers();
+        if (data.chatCleared) {
+          clearLocalChat('🧹 ล้างประวัติช่องแชทอัตโนมัติ (เริ่มต้นห้องใหม่)');
+        }
         if (Array.isArray(data.players)) {
-          data.players.forEach((p) => upsertPeer(p));
+          const activeIds = new Set();
+          data.players.forEach((p) => {
+            if (p && p.id && p.id !== myId) {
+              activeIds.add(p.id);
+              upsertPeer(p);
+            }
+          });
+          const beforeCount = Object.keys(peers).length;
+          Object.keys(peers).forEach((id) => {
+            if (!activeIds.has(id)) delete peers[id];
+          });
+          if (beforeCount > 0 && Object.keys(peers).length === 0 && hadOnlinePeersInRoom) {
+            hadOnlinePeersInRoom = false;
+            clearRoomChatIfEmpty('🧹 ล้างช่องแชทอัตโนมัติ เนื่องจากไม่มีผู้เล่นคนอื่นออนไลน์อยู่ในห้อง');
+          }
         }
         if (Array.isArray(data.coopUnits)) {
           mergeCoopUnits(data.coopUnits, 'เพื่อนในห้องแล็บ');
@@ -426,11 +484,13 @@ window.Multiplayer = (function () {
 
     const playersRef = fbDb.ref(fbRoomPath + '/players');
     const coopRef = fbDb.ref(fbRoomPath + '/coopUnits');
-    const chatsRef = fbDb.ref(fbRoomPath + '/chats').limitToLast(40);
+    const chatsFullRef = fbDb.ref(fbRoomPath + '/chats');
+    const chatsRef = chatsFullRef.limitToLast(40);
     const adminCmdRef = fbDb.ref(fbRoomPath + '/adminCmd');
     const connRef = fbDb.ref('.info/connected');
     fbMyPlayerRef = playersRef.child(myId);
     roomJoinedAt = Date.now();
+    hadOnlinePeersInRoom = false;
 
     const onAdminVal = (snap) => {
       const cmd = snap.val();
@@ -439,11 +499,63 @@ window.Multiplayer = (function () {
     adminCmdRef.on('value', onAdminVal);
     fbListeners.push(() => adminCmdRef.off('value', onAdminVal));
 
+    // Check initial room occupancy: if no active players are online (or all existing entries are stale > 15s), auto-clear old room chats!
+    let chatListenerAttached = false;
+    const attachChatListeners = () => {
+      if (chatListenerAttached) return;
+      chatListenerAttached = true;
+      const onChatAdd = (snap) => {
+        const entry = snap.val();
+        if (entry && entry.text) pushChat(entry);
+      };
+      const onChatClearedRemotely = (snap) => {
+        if (!snap.exists() && chatLog.length > 0) {
+          clearLocalChat('🧹 ล้างช่องแชทของห้องเรียบร้อยแล้ว');
+        }
+      };
+      chatsRef.on('child_added', onChatAdd);
+      chatsFullRef.on('value', onChatClearedRemotely);
+      fbListeners.push(() => {
+        chatsRef.off('child_added', onChatAdd);
+        chatsFullRef.off('value', onChatClearedRemotely);
+      });
+    };
+
+    playersRef.once('value', (snap) => {
+      const now = Date.now();
+      const all = snap.val() || {};
+      let activeOthers = 0;
+      Object.keys(all).forEach((pid) => {
+        if (pid === myId) return;
+        const p = all[pid];
+        if (p && p.ts && (now - p.ts) < 15000) {
+          activeOthers++;
+        } else {
+          // Prune stale ghost player node left behind from an older session
+          playersRef.child(pid).remove().catch(() => {});
+        }
+      });
+
+      if (activeOthers === 0) {
+        // Room had nobody online! Auto-wipe old chat history in Firebase before attaching chat listener
+        chatsFullRef.remove().finally(() => {
+          clearLocalChat('');
+          attachChatListeners();
+          pushChat({ system: true, text: `เชื่อมต่อห้องเรียน ${roomCode} สำเร็จ! (🧹 ล้างประวัติแชทเก่าอัตโนมัติเนื่องจากไม่มีคนออนไลน์ในห้องก่อนหน้า)`, time: nowTimeStr() });
+        });
+      } else {
+        hadOnlinePeersInRoom = true;
+        attachChatListeners();
+        pushChat({ system: true, text: `เชื่อมต่อห้องเรียนใหญ่ ${roomCode} (ออนไลน์อยู่ ${activeOthers + 1} คน) สำเร็จ!`, time: nowTimeStr() });
+      }
+    }).catch(() => {
+      attachChatListeners();
+    });
+
     const onConn = (snap) => {
       if (snap.val() === true) {
         fbMyPlayerRef.onDisconnect().remove();
         setStatus('firebase', true, `☁️ ห้องใหญ่ 40–100 คน (Firebase): ${roomCode}`);
-        pushChat({ system: true, text: `เชื่อมต่อห้องเรียนใหญ่ ${roomCode} (รองรับสูงสุด 100 คน) สำเร็จ!`, time: nowTimeStr() });
         hooks.onToast(`☁️ เข้าห้องใหญ่ "${roomCode}" สำเร็จ! (รองรับ 40–100 คน)`, true);
         pushFirebaseSelf(true);
       }
@@ -461,7 +573,13 @@ window.Multiplayer = (function () {
       if (val && snap.key !== myId) upsertPeer({ ...val, id: snap.key });
     };
     const onPlayerRemoved = (snap) => {
-      if (snap.key && peers[snap.key]) delete peers[snap.key];
+      if (snap.key && peers[snap.key]) {
+        delete peers[snap.key];
+        if (Object.keys(peers).length === 0 && hadOnlinePeersInRoom) {
+          hadOnlinePeersInRoom = false;
+          clearRoomChatIfEmpty('🧹 ล้างช่องแชทอัตโนมัติ เนื่องจากผู้เล่นคนอื่นออกจากห้องหมดแล้ว');
+        }
+      }
     };
     playersRef.on('child_added', onPlayerAdded);
     playersRef.on('child_changed', onPlayerChanged);
@@ -479,14 +597,6 @@ window.Multiplayer = (function () {
     };
     coopRef.on('child_added', onCoopAdd);
     fbListeners.push(() => coopRef.off('child_added', onCoopAdd));
-
-    // Live Chat stream (last 40 messages)
-    const onChatAdd = (snap) => {
-      const entry = snap.val();
-      if (entry && entry.text) pushChat(entry);
-    };
-    chatsRef.on('child_added', onChatAdd);
-    fbListeners.push(() => chatsRef.off('child_added', onChatAdd));
 
     function pushFirebaseSelf(force = false) {
       if (!fbMyPlayerRef) return;

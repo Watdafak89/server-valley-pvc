@@ -484,6 +484,15 @@
       if (treeLookup.has(tx + ',' + ty)) return true;
       if ((tx === 41 || tx === 42) && ty === 24) return true;
       if ((tx === 12 || tx === 13) && ty === 14) return true;
+
+      // Outdoor Town & Shopkeeper NPCs hitbox
+      if (GD.TOWN_NPCS) {
+        for (const tn of GD.TOWN_NPCS) {
+          if (Math.abs(cx - (tn.tx * TILE + 16)) < 13 && Math.abs(cy - (tn.ty * TILE + 24)) < 10) {
+            return true;
+          }
+        }
+      }
     }
     return false;
   }
@@ -543,6 +552,16 @@
           ? `📚 เปิดคลังความรู้ที่ ${sb.shortName}`
           : `🔍 สำรวจ ${sb.shortName}`;
         consider('scenery_door', sb, doorWx, doorWy - 2, lbl);
+      });
+    }
+
+    // Outdoor Town & Shopkeeper NPCs (IT Store Shopkeeper + Village Residents)
+    if (GD.TOWN_NPCS) {
+      GD.TOWN_NPCS.forEach((tn) => {
+        const lbl = tn.action === 'shop'
+          ? `🛒 ทักทาย & ซื้อของกับ ${tn.name}`
+          : `👋 ทักทาย ${tn.name}`;
+        consider('town_npc', tn, tn.tx * TILE + 16, tn.ty * TILE + 16, lbl);
       });
     }
 
@@ -658,10 +677,78 @@
       return;
     }
 
+    if (target.kind === 'town_npc') {
+      handleTownNpcTalk(target.obj);
+      return;
+    }
+
     if (target.kind === 'station') {
       handleStationInteract(target.obj);
       return;
     }
+  }
+
+  function handleTownNpcTalk(tn) {
+    const pName = (state.profile && state.profile.studentName) || 'แอดมิน';
+    const buildChoices = () => {
+      const list = [];
+      if (Array.isArray(tn.quickReplies)) {
+        tn.quickReplies.forEach((qText, idx) => {
+          list.push({
+            label: qText,
+            action: () => {
+              const ans = (tn.replyAnswers && tn.replyAnswers[idx]) || 'ยินดีที่ได้พูดคุยกันนะ!';
+              spawnParticles(tn.tx * TILE + 16, tn.ty * TILE + 8, '#fde047', 16);
+              openDialog({
+                speaker: tn.name,
+                role: tn.role,
+                style: tn.style,
+                lines: [ans],
+                choices: buildActionOnlyChoices()
+              });
+            }
+          });
+        });
+      }
+      list.push(...buildActionOnlyChoices());
+      return list;
+    };
+
+    const buildActionOnlyChoices = () => {
+      const actChoices = [];
+      if (tn.action === 'shop') {
+        actChoices.push({
+          label: '🛒 เปิดร้านค้าอุปกรณ์ไอที (IT Store)',
+          primary: true,
+          action: () => { closeDialog(); openShopModal(); }
+        });
+      } else if (tn.action === 'codex') {
+        actChoices.push({
+          label: '📚 เปิดคลังความรู้ 18 สัปดาห์',
+          primary: true,
+          action: () => { closeDialog(); openCodexModal(); }
+        });
+      } else if (tn.action === 'map') {
+        actChoices.push({
+          label: '🗺️ เปิดแผนที่หมู่บ้าน & วาร์ปด่วน',
+          primary: true,
+          action: () => { closeDialog(); openMapModal(); }
+        });
+      }
+      return actChoices;
+    };
+
+    const lines = (tn.greetings && tn.greetings.length)
+      ? tn.greetings.map((l) => l.replace('{player}', pName))
+      : [`สวัสดี ${pName}! ยินดีต้อนรับสู่หมู่บ้าน Server Valley นะ!`];
+
+    openDialog({
+      speaker: tn.name,
+      role: tn.role,
+      style: tn.style,
+      lines,
+      choices: buildChoices()
+    });
   }
 
   function handleNpcTalk(npc) {
@@ -2153,6 +2240,45 @@
       });
     });
 
+    // Outdoor Town & Shopkeeper NPCs standing in front of IT Store, Café, Bookstore, Plaza, Farm, Greenhouse, Forge, Barn & Clinic
+    if (GD.TOWN_NPCS) {
+      GD.TOWN_NPCS.forEach((tn, idx) => {
+        if (tn.tx < startX - 3 || tn.tx > endX + 3 || tn.ty < startY - 3 || tn.ty > endY + 3) return;
+        const wx = tn.tx * TILE;
+        const wy = tn.ty * TILE;
+        // Turn gently toward player when player is nearby
+        let lookDir = tn.dir || 'down';
+        const dPlayer = Math.hypot((state.player.x + 16) - (wx + 16), (state.player.y + 16) - (wy + 16));
+        if (dPlayer < 96) {
+          const dx = (state.player.x + 16) - (wx + 16);
+          const dy = (state.player.y + 16) - (wy + 16);
+          if (Math.abs(dx) > Math.abs(dy)) lookDir = dx < 0 ? 'left' : 'right';
+          else lookDir = dy < 0 ? 'up' : 'down';
+        }
+        renderList.push({
+          y: wy + 31,
+          draw: () => {
+            Sprites.drawCharacter(ctx, wx, wy - 6, tn.style, lookDir, 0, 2, tick + idx * 19);
+            // Floating role/greeting marker above NPC
+            if (tn.marker) {
+              drawFloatingMarker(ctx, wx + 16, wy - 20, tn.marker, tn.markerColor || '#ffd54f');
+            }
+            // Nameplate under NPC feet
+            ctx.font = 'bold 9.5px Kanit, sans-serif';
+            const nw = Math.max(58, ctx.measureText(tn.name).width + 12);
+            ctx.fillStyle = tn.action === 'shop' ? 'rgba(124, 45, 18, 0.90)' : 'rgba(30, 20, 10, 0.86)';
+            ctx.fillRect(wx + 16 - nw / 2, wy + 28, nw, 14);
+            ctx.strokeStyle = tn.markerColor || '#fde68a';
+            ctx.lineWidth = 1.2;
+            ctx.strokeRect(wx + 16 - nw / 2, wy + 28, nw, 14);
+            ctx.fillStyle = '#fffbeb';
+            ctx.textAlign = 'center';
+            ctx.fillText(tn.name, wx + 16, wy + 38.5);
+          }
+        });
+      });
+    }
+
     // Connected Classmates who are OUTSIDE in the village
     if (window.Multiplayer) {
       const nowMs = Date.now();
@@ -3361,6 +3487,11 @@
     box.scrollTop = box.scrollHeight;
   }
 
+  function clearChatMessagesUI() {
+    const box = document.getElementById('chat-messages');
+    if (box) box.innerHTML = '';
+  }
+
   if (window.Multiplayer) {
     Multiplayer.init({
       getLocalPlayer: () => ({
@@ -3395,6 +3526,7 @@
         }
       },
       onChatMessage: appendChatBubbleUI,
+      onChatCleared: clearChatMessagesUI,
       onToast: showToast,
       onAdminCommand: handleTeacherAdminCommand,
       onStatusChange: (st) => {
@@ -3794,9 +3926,27 @@
       SoundFX.talk();
     };
   });
-  document.getElementById('btn-chat-collapse').onclick = () => {
-    document.getElementById('chat-body-wrap').classList.toggle('hidden');
-  };
+  const btnChatCollapse = document.getElementById('btn-chat-collapse');
+  const chatBodyWrap = document.getElementById('chat-body-wrap');
+  if (btnChatCollapse && chatBodyWrap) {
+    btnChatCollapse.onclick = () => {
+      SoundFX.click();
+      const isHidden = chatBodyWrap.classList.toggle('hidden');
+      btnChatCollapse.textContent = isHidden ? '🔼 แสดง' : '🔽 ย่อ';
+      btnChatCollapse.title = isHidden ? 'แสดงช่องแชท' : 'ย่อช่องแชท';
+    };
+  }
+
+  const btnQuestCollapse = document.getElementById('btn-quest-collapse');
+  const questTrackerBody = document.getElementById('quest-tracker-body');
+  if (btnQuestCollapse && questTrackerBody) {
+    btnQuestCollapse.onclick = () => {
+      SoundFX.click();
+      const isHidden = questTrackerBody.classList.toggle('hidden');
+      btnQuestCollapse.textContent = isHidden ? '🔼 แสดง' : '🔽 ย่อ';
+      btnQuestCollapse.title = isHidden ? 'แสดงรายละเอียดเควสปัจจุบัน' : 'ย่อกรอบเควสปัจจุบัน';
+    };
+  }
 
   // Title Buttons & Prefill Saved Profile
   const saved = loadGame();

@@ -498,6 +498,270 @@ window.GAME_DATA = (function () {
     }
   ];
 
+  // 10 Outdoor Town & Shopkeeper NPCs standing across the Village Map (Greetable & Interactive!)
+  const TOWN_NPCS = [
+    {
+      id: 'shopkeeper_byte',
+      name: 'เฮียไบต์ (เจ้าของห้างไอที)',
+      role: '🏪 ผู้จัดการห้าง Server Valley IT Mart',
+      tx: 34, ty: 23,
+      dir: 'down',
+      action: 'shop',
+      marker: '🛒',
+      markerColor: '#4ade80',
+      style: {
+        skin: '#f6cfa6', hair: '#241712', hairStyle: 'sidepart', faceStyle: 'smile',
+        shirt: '#c92a2a', shirtStyle: 'vest', pants: '#1e293b', shoes: '#5c3317', hat: '#b91c1c'
+      },
+      greetings: [
+        'สวัสดีวัยรุ่นแอดมิน! ยินดีต้อนรับสู่ห้างสรรพสินค้าอุปกรณ์ไอที Server Valley IT Mart!',
+        'ไม่ว่าจะต้องการกาแฟแอดมินฟื้นพลังงาน สายแลน Cat6 แฟลชไดรฟ์ ISO หรือเครื่องมือดูแลเซิร์ฟเวอร์ เฮียจัดให้ครบในราคาพิเศษ!'
+      ],
+      quickReplies: [
+        '👋 สวัสดีครับ/ค่ะเฮียไบต์! วันนี้มีโปรโมชันอะไรบ้าง?',
+        '☕ ขอแวะเติมเสบียงกาแฟแอดมินหน่อยครับ/ค่ะ!'
+      ],
+      replyAnswers: [
+        'ฮ่า ๆ วันนี้สายแลน Cat6 แท้หัว RJ45 ทองเหลือง กับกาแฟแอดมินคั่วสดขายดีสุด ๆ! กดเปิดหน้าร้านเลือกซื้อได้เลย!',
+        'จัดไปเลย! กาแฟแอดมิน 1 แก้ว ฟื้นพลังงาน +35 แถมวิ่งไวขึ้นด้วยนะ พร้อมลุยแล็บ 18 สัปดาห์แน่นอน!'
+      ]
+    },
+    {
+      id: 'barista_latte',
+      name: 'บาริสต้าลัตเต้',
+      role: '☕ เจ้าของคาเฟ่แอดมิน & เบเกอรีไบต์',
+      tx: 36, ty: 8,
+      dir: 'down',
+      action: 'shop',
+      marker: '☕',
+      markerColor: '#fbbf24',
+      style: {
+        skin: '#fde0c4', hair: '#a36a2c', hairStyle: 'ponytail', faceStyle: 'happy',
+        shirt: '#15803d', shirtStyle: 'overalls', pants: '#5c3317', shoes: '#5c3317', hat: ''
+      },
+      greetings: [
+        'สวัสดีจ้า~ กลิ่นกาแฟเอสเพรสโซ่หอม ๆ จากคาเฟ่แอดมินพร้อมเสิร์ฟแล้วนะ!',
+        'เวลาทำแล็บตั้งค่าเซิร์ฟเวอร์เหนื่อย ๆ แวะมาซื้อกาแฟหรือขนมปังไบต์ไปเติม Energy ได้ตลอดเลยนะ!'
+      ],
+      quickReplies: [
+        '👋 ทักทาย: กลิ่นกาแฟหอมมาถึงหน้าคาเฟ่เลย!',
+        '🥐 เมนูแนะนำสำหรับแอดมินอดนอนคืออะไร?'
+      ],
+      replyAnswers: [
+        'ขอบคุณจ้า! เมล็ดกาแฟของเราปลูกในเรือนกระจก IoT ของหมู่บ้าน คั่วสดใหม่ทุกเช้าเลยนะ 😊',
+        'ต้อง "กาแฟแอดมิน (Admin Espresso)" คู่กับ "ขนมปังไบต์" เลยจ้ะ ดื่มปุ๊บตาสว่าง พิมพ์คำสั่ง Linux ไม่ผิดแม้แต่ตัวเดียว!'
+      ]
+    },
+    {
+      id: 'librarian_fah',
+      name: 'บรรณารักษ์ฟ้า',
+      role: '📚 ผู้ดูแลร้านหนังสือ & คู่มือเซิร์ฟเวอร์',
+      tx: 47, ty: 23,
+      dir: 'down',
+      action: 'codex',
+      marker: '📖',
+      markerColor: '#38bdf8',
+      style: {
+        skin: '#fde0c4', hair: '#1e3a5f', hairStyle: 'bob', faceStyle: 'glasses',
+        shirt: '#2563eb', shirtStyle: 'suit', pants: '#1e293b', shoes: '#1f2428', hat: ''
+      },
+      greetings: [
+        'สวัสดีค่ะ! ร้านหนังสือไอที Valley Tech Bookstore ยินดีต้อนรับนักศึกษาปวช. ทุกคนค่ะ',
+        'ที่นี่รวบรวมสรุปเนื้อหาครบทั้ง 18 สัปดาห์ ทั้งคำสั่ง Linux, พอร์ตเครือข่าย และ Windows Server เปิดอ่านฟรีก่อนเข้าห้องสอบได้เลยนะคะ!'
+      ],
+      quickReplies: [
+        '👋 สวัสดีครับ/ค่ะพี่ฟ้า ขอคำแนะนำการจำพอร์ตหน่อย!',
+        '📖 ขอดูคู่มือสรุป 18 สัปดาห์หน่อยครับ/ค่ะ'
+      ],
+      replyAnswers: [
+        'เคล็ดลับจำพอร์ตยอดฮิต: SSH=22, DNS=53, DHCP=67/68, HTTP=80, HTTPS=443, SMB=445, MariaDB=3306, RDP=3389 ท่องชุดนี้สอบผ่านฉลุยค่ะ!',
+        'ได้เลยค่ะ! กดปุ่มเปิดคลังความรู้ด้านล่าง หรือกดปุ่ม B บนคีย์บอร์ดได้ทุกเมื่อเลยนะคะ!'
+      ]
+    },
+    {
+      id: 'farmer_kla',
+      name: 'ลุงกล้า เกษตรกรสมาร์ตฟาร์ม',
+      role: '🌾 ชาวไร่ประจำแปลงเกษตรโซน 1',
+      tx: 9, ty: 14,
+      dir: 'down',
+      action: 'chat',
+      marker: '🌾',
+      markerColor: '#a3e635',
+      style: {
+        skin: '#c68642', hair: '#5a331c', hairStyle: 'short', faceStyle: 'smile',
+        shirt: '#d97706', shirtStyle: 'overalls', pants: '#2c4969', shoes: '#5c3317', hat: 'straw'
+      },
+      greetings: [
+        'อ้าว สวัสดีหลานแอดมิน! วันนี้อากาศดีเหมาะกับการเดินสายแลนและรดน้ำแปลงผักจริง ๆ!',
+        'ตั้งแต่หมู่บ้านเรามีระบบ Server คอยแจ้งพยากรณ์อากาศและตั้งเวลาสูบน้ำจากบ่อน้ำ ผลผลิตในไร่ก็งอกงามขึ้นเป็นเท่าตัวเลย!'
+      ],
+      quickReplies: [
+        '👋 สวัสดีครับ/ค่ะลุงกล้า ผักในแปลงงามมากเลย!',
+        '💡 ลุงกล้าใช้ระบบอะไรตั้งเวลารดน้ำผักครับ?'
+      ],
+      replyAnswers: [
+        'ฮ่า ๆ ขอบใจมากหลาน! ถ้าเดินสำรวจเหนื่อย ๆ แวะเข้าบ้านพักแอดมินไปนอนพักฟื้นพลังงานได้เสมอนะ!',
+        'ลุงให้พี่ครอน (สัปดาห์ที่ 10) ช่วยตั้ง Linux Cron Job สั่งปั๊มน้ำทำงานอัตโนมัติทุกเช้าตอน 06:00 น. (`0 6 * * *`) สะดวกสุด ๆ ไปเลย!'
+      ]
+    },
+    {
+      id: 'plaza_guide_nana',
+      name: 'นานะ ไกด์ประจำลานน้ำพุ',
+      role: '⛲ ทูตต้อนรับจัตุรัสกลาง Server Valley',
+      tx: 40, ty: 26,
+      dir: 'down',
+      action: 'map',
+      marker: '💬',
+      markerColor: '#f472b6',
+      style: {
+        skin: '#fde0c4', hair: '#f472b6', hairStyle: 'twintails', faceStyle: 'wink',
+        shirt: '#b83280', shirtStyle: 'hoodie', pants: '#1e293b', shoes: '#e2e8f0', hat: 'catears'
+      },
+      greetings: [
+        'ยาฮู้~ สวัสดีจ้า! ยินดีต้อนรับสู่ลานน้ำพุจัตุรัสกลางหมู่บ้าน Server Valley นะ!',
+        'หมู่บ้านของเรามี 4 โซน 17 อาคารเรียนครบ 18 สัปดาห์ แถมยังมีห้างไอที IT Mart อยู่ทางซ้ายมือของลานน้ำพุด้วยนะ!'
+      ],
+      quickReplies: [
+        '👋 ทักทายนานะ! หมู่บ้านบรรยากาศสดใสมากเลย',
+        '🗺️ อยากเดินทางไปโซนอื่นเร็ว ๆ ต้องทำยังไง?'
+      ],
+      replyAnswers: [
+        'ใช่ไหมล่ะ! ยิ่งเพื่อน ๆ ช่วยกันทำแล็บกู้คืนเซิร์ฟเวอร์ให้ครบ ไฟสถานะของอาคารต่าง ๆ ก็จะยิ่งสว่างไสวทั่วหมู่บ้านเลย ✨',
+        'ง่ายนิดเดียว! กดปุ่ม M เพื่อเปิดแผนที่หมู่บ้าน แล้วคลิกที่อาคารของสัปดาห์ที่ต้องการเพื่อวาร์ปไปหน้าประตูได้ทันทีเลยจ้า!'
+      ]
+    },
+    {
+      id: 'student_ton',
+      name: 'ต้น เด็กปวช.สาย नेटवर्क',
+      role: '🧑‍💻 นักศึกษาฝึกงานไอที (โซน 1)',
+      tx: 21, ty: 11,
+      dir: 'down',
+      action: 'chat',
+      marker: '💬',
+      markerColor: '#60a5fa',
+      style: {
+        skin: '#f6cfa6', hair: '#241712', hairStyle: 'spiky', faceStyle: 'cool',
+        shirt: '#2b6cb0', shirtStyle: 'jacket', pants: '#22272e', shoes: '#2563eb', hat: 'headphones'
+      },
+      greetings: [
+        'โย่วเพื่อน! กำลังเดินไปเข้าอาคารเรียนสัปดาห์ไหนอยู่เหรอ?',
+        'เมื่อกี้เราเพิ่งเข้าไปทำแล็บในอาคารมา พอเดินเข้าประตูอาคารปุ๊บ ข้างในมีทั้งอาจารย์ประจำสัปดาห์ กล่องเบิกอุปกรณ์ และตู้ Server Rack ให้ฝึกทำแล็บครบเลย!'
+      ],
+      quickReplies: [
+        '👋 ไงต้น! สู้ ๆ กับการฝึกงานแอดมินนะ!',
+        '🖥️ มีทริคเวลาทำแล็บตั้งค่า IP ไหม?'
+      ],
+      replyAnswers: [
+        'สู้ตายอยู่แล้วเพื่อน! ไว้เจอกันบนตาราง Leaderboard ของห้องเรียนนะ! 🔥',
+        'จำไว้เลยว่าเครื่องแม่ข่าย (Server) ต้องใช้ Static IP คงที่เสมอ เช่น `192.168.1.10/24` เพื่อให้เครื่องลูกข่ายหาเจอตลอดเวลา!'
+      ]
+    },
+    {
+      id: 'iot_botanist_mali',
+      name: 'พี่มะลิ นักวิจัยเรือนกระจก IoT',
+      role: '🌿 ผู้ดูแล Smart Glass Greenhouse (โซน 3)',
+      tx: 32, ty: 35,
+      dir: 'down',
+      action: 'chat',
+      marker: '🌿',
+      markerColor: '#34d399',
+      style: {
+        skin: '#f6cfa6', hair: '#10b981', hairStyle: 'long', faceStyle: 'smile',
+        shirt: '#e2e8f0', shirtStyle: 'labcoat', pants: '#0d9488', shoes: '#e2e8f0', hat: ''
+      },
+      greetings: [
+        'สวัสดีจ้ะ! ด้านหลังพี่คือเรือนกระจกเกษตรอัจฉริยะ (Smart IoT Greenhouse) ของหมู่บ้านเราเอง',
+        'เซนเซอร์วัดความชื้นและอุณหภูมิในเรือนกระจกส่งข้อมูลไปเก็บในฐานข้อมูล MariaDB (พอร์ต 3306) และแสดงผลบนเว็บ Apache2 (พอร์ต 80/443) แบบเรียลไทม์เลยนะ!'
+      ],
+      quickReplies: [
+        '👋 สวัสดีครับ/ค่ะพี่มะลิ เรือนกระจกสวยมากเลย!',
+        '📊 ข้อมูลเซนเซอร์สำรองไว้ยังไงไม่ให้หายครับ?'
+      ],
+      replyAnswers: [
+        'ขอบคุณจ้า! กระจกใสสะท้อนแสงแดดอบอุ่น แถมต้นไม้ข้างในก็เติบโตดีเพราะระบบเซิร์ฟเวอร์ที่เสถียรนี่แหละ 🌱',
+        'พี่ใช้กฎ 3-2-1 Backup และตั้ง `mysqldump` ร่วมกับ `rsync` สำรองข้อมูลขึ้นเซิร์ฟเวอร์ทุกคืนตามที่เรียนในสัปดาห์ที่ 16 เลยจ้ะ!'
+      ]
+    },
+    {
+      id: 'blacksmith_khem',
+      name: 'ช่างเข้ม โรงซ่อมฮาร์ดแวร์',
+      role: '🛠️ หัวหน้าช่าง Hardware Forge & Repair (โซน 3)',
+      tx: 18, ty: 44,
+      dir: 'down',
+      action: 'shop',
+      marker: '🛠️',
+      markerColor: '#fb923c',
+      style: {
+        skin: '#c68642', hair: '#241712', hairStyle: 'wolfcut', faceStyle: 'cyber',
+        shirt: '#c05621', shirtStyle: 'cyber_armor', pants: '#22272e', shoes: '#1f2428', hat: ''
+      },
+      greetings: [
+        'เฮ้! ยินดีต้อนรับสู่โรงซ่อมฮาร์ดแวร์และประกอบตู้แร็คเซิร์ฟเวอร์!',
+        'ถ้าต้องการอุปกรณ์เสริม เครื่องมือซ่อมบำรุง หรือไอเท็มช่วยทำเควส แวะเปิดดูรายการสินค้ากับพี่ตรงนี้ได้เลย!'
+      ],
+      quickReplies: [
+        '👋 สวัสดีครับ/ค่ะช่างเข้ม แว่น Cyber เท่มาก!',
+        '💽 ถ้าฮาร์ดดิสก์ในเซิร์ฟเวอร์เสีย 1 ลูก ควรใช้ RAID อะไร?'
+      ],
+      replyAnswers: [
+        'แน่นอน! แว่น Cyber AR ตัวนี้สแกนความร้อนของ CPU และสถานะไฟ LED ของพอร์ตแลนได้ในพริบตา! ⚡',
+        'ถ้ามีดิสก์ 2 ลูกให้ใช้ RAID 1 (Mirroring) แต่ถ้ามีตั้งแต่ 3 ลูกขึ้นไปแนะนำ RAID 5 เลย ดิสก์พังไป 1 ลูกระบบก็ยังออนไลน์ต่อได้ไม่สะดุด!'
+      ]
+    },
+    {
+      id: 'rancher_boon',
+      name: 'ลุงบุญ นายสถานีโรงนา & ไซโล',
+      role: '🐂 ผู้ดูแลโรงนาแดงและหอไซโล (โซน 2)',
+      tx: 75, ty: 18,
+      dir: 'down',
+      action: 'chat',
+      marker: '🌾',
+      markerColor: '#f87171',
+      style: {
+        skin: '#e3ae7c', hair: '#5a331c', hairStyle: 'curly', faceStyle: 'happy',
+        shirt: '#c53030', shirtStyle: 'overalls', pants: '#2c4969', shoes: '#5c3317', hat: 'straw'
+      },
+      greetings: [
+        'ฮ่า ๆ สวัสดีหลานรัก! เดินมาไกลถึงฝั่งตะวันออกของโซน 2 เลยนะ!',
+        'โรงนาสีแดงและหอไซโลตรงนี้เก็บเสบียงและม้วนสายไฟเบอร์ออปติกสำรองไว้เลี้ยงคนทั้งหมู่บ้านเลยล่ะ!'
+      ],
+      quickReplies: [
+        '👋 สวัสดีครับ/ค่ะลุงบุญ โรงนาสีแดงเด่นมาแต่ไกลเลย!',
+        '🌐 แถวโซน 2 นี้มีอาคารเรียนเรื่องอะไรบ้างครับ?'
+      ],
+      replyAnswers: [
+        'เพิ่งทาสีใหม่รับฤดูใบไม้ผลินี้เลยล่ะ! เดินชมวิวทุ่งหญ้าและบ่อน้ำแถวนี้ตามสบายเลยนะ!',
+        'โซน 2 (NE) นี่รวมหัวใจของระบบเครือข่ายเลย! มีตั้งแต่ RAID Storage (ส.6), SSH รีโมต (ส.7), DHCP จ่ายไอพี (ส.8), DNS โดเมน (ส.9) ไปจนถึง Systemd & Cron (ส.10) เลย!'
+      ]
+    },
+    {
+      id: 'nurse_patch',
+      name: 'พยาบาลแพทช์ (คลินิกกู้ภัยระบบ)',
+      role: '🏥 ผู้เชี่ยวชาญ Security Patch & Recovery (โซน 4)',
+      tx: 59, ty: 44,
+      dir: 'down',
+      action: 'codex',
+      marker: '🏥',
+      markerColor: '#2dd4bf',
+      style: {
+        skin: '#fde0c4', hair: '#8b5cf6', hairStyle: 'bun', faceStyle: 'star',
+        shirt: '#e2e8f0', shirtStyle: 'labcoat', pants: '#1e3a5f', shoes: '#e2e8f0', hat: ''
+      },
+      greetings: [
+        'สวัสดีค่ะ! คลินิกตรวจสุขภาพและกู้ภัยเซิร์ฟเวอร์ประจำโซน 4 ยินดีให้บริการค่ะ 💚',
+        'การอัปเดต Security Patch สม่ำเสมอ เปิด Firewall (UFW) และตรวจ Log ใน `/var/log/auth.log` คือวัคซีนป้องกันเซิร์ฟเวอร์ที่ดีที่สุดนะคะ!'
+      ],
+      quickReplies: [
+        '👋 สวัสดีครับ/ค่ะคุณพยาบาลแพทช์!',
+        '🛡️ ถ้าเจอคนสุ่มรหัสผ่าน SSH ใน Log ต้องทำยังไงครับ?'
+      ],
+      replyAnswers: [
+        'สวัสดีจ้า! ดูแลสุขภาพเซิร์ฟเวอร์แล้ว อย่าลืมดูแลสุขภาพตัวเองและเติม Energy ในเกมด้วยนะ ✨',
+        'ถ้าพบข้อความ `Failed password` รัว ๆ ใน `/var/log/auth.log` คือการโจมตีแบบ Brute Force! ต้องรีบปิด Root Login, เปลี่ยนไปใช้ SSH Key และบล็อก IP ผู้บุกรุกด้วย Firewall ทันทีค่ะ!'
+      ]
+    }
+  ];
+
   // 18 Progressive Weekly Quests (18-Week Thai ปวช. Semester)
   const QUESTS = [
     {
@@ -863,8 +1127,8 @@ window.GAME_DATA = (function () {
         for (let x = b.tx - 1; x <= b.tx + b.tw; x++) mark(x, y);
       }
     });
-    // Protect NPCs, Stations, Crates, Props
-    [...NPCS, ...STATIONS, ...CRATES, ...SPECIAL_PROPS].forEach((o) => {
+    // Protect NPCs, Town NPCs, Stations, Crates, Props
+    [...NPCS, ...TOWN_NPCS, ...STATIONS, ...CRATES, ...SPECIAL_PROPS].forEach((o) => {
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) mark(o.tx + dx, o.ty + dy);
       }
@@ -914,6 +1178,7 @@ window.GAME_DATA = (function () {
     CRATES,
     SPECIAL_PROPS,
     NPCS,
+    TOWN_NPCS,
     QUESTS,
     LAMPS,
     createTileMap,
