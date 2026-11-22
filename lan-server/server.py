@@ -91,6 +91,13 @@ class ServerValleyHandler(SimpleHTTPRequestHandler):
                 for pid in stale:
                     del room["players"][pid]
 
+                # Auto-clear room chat when other players disconnect and room has no active peers left
+                chat_cleared = False
+                if len(room["players"]) <= 1 and len(stale) > 0:
+                    room["chats"] = []
+                    room["seq"] = 0
+                    chat_cleared = True
+
                 last_seq = int(payload.get("lastChatSeq", 0))
                 new_chats = [c for c in room["chats"] if c.get("seq", 0) > last_seq]
 
@@ -98,7 +105,8 @@ class ServerValleyHandler(SimpleHTTPRequestHandler):
                     "ok": True,
                     "players": list(room["players"].values()),
                     "coopUnits": sorted(room["coop_units"]),
-                    "chats": new_chats
+                    "chats": new_chats,
+                    "chatCleared": chat_cleared
                 })
 
         if self.path == "/api/chat":

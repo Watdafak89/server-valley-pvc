@@ -144,6 +144,14 @@ try {
         }
         foreach ($k in $staleKeys) { $room.players.Remove($k) }
 
+        # If this player is the only one online after pruning stale players, or room was previously empty, auto-clear old chats
+        $chatCleared = $false
+        if ($room.players.Count -le 1 -and $staleKeys.Count -gt 0) {
+          $room.chats.Clear()
+          $room.seq = 0
+          $chatCleared = $true
+        }
+
         $lastSeq = 0
         if ($payload.lastChatSeq) { $lastSeq = [int]$payload.lastChatSeq }
         $newChats = @()
@@ -152,10 +160,11 @@ try {
         }
 
         $respObj = @{
-          ok        = $true
-          players   = @($room.players.Values)
-          coopUnits = @($room.coopUnits)
-          chats     = $newChats
+          ok          = $true
+          players     = @($room.players.Values)
+          coopUnits   = @($room.coopUnits)
+          chats       = $newChats
+          chatCleared = $chatCleared
         }
         $jsonBytes = [System.Text.Encoding]::UTF8.GetBytes(($respObj | ConvertTo-Json -Depth 6 -Compress))
         Send-Response $stream 200 "OK" "application/json; charset=utf-8" $jsonBytes
